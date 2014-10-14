@@ -1,0 +1,15 @@
+<package>
+  <name>Vision</name>
+  <version>1.2.4</version>
+  <description>
+    Vision package
+  </description>
+  <maintainer email="michalst@kth.se">Michal</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+   <metapackage />
+ </export>
+</package>
