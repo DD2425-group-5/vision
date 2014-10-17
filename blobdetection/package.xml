@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>blobdetection</name>
+  <version>0.0.0</version>
+  <description>The blobdetection package</description>
+
+  <maintainer email="dmitrijl@kth.se">dmitrij</maintainer>
+
+  <license>BSD</license>
+
+  <author email="dmitrijl@kth.se">Dmitrij Lioubartsev</author>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>roscpp</buildtool_depend>
+  <run_depend>roscpp</run_depend>
+  <buildtool_depend>sensor_msgs</buildtool_depend>
+  <run_depend>sensor_msgs</run_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- You can specify that this package is a metapackage here: -->
+    <!-- <metapackage/> -->
+
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
