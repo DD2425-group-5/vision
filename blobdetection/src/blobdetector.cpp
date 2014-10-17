@@ -6,7 +6,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
+using namespace cv;
 
 class BlobDetectorNode {
 public:
@@ -18,10 +20,9 @@ public:
     BlobDetectorNode() {
         nh = ros::NodeHandle("blobdetector");
 
-        pwm_ = std::vector<int>(2, 0);
-        t_pwm_ = ros::Time::now();
+        t_depth = ros::Time::now();
 
-        depth_subscriber = nh.subscribe("/camera/depth/image_rect", 1, &BlobDetectorNode::depthCallback, this);
+        depth_subscriber = nh.subscribe("/image_converter/output_video", 1, &BlobDetectorNode::depthCallback, this);
         blob_publisher = nh.advertise<geometry_msgs::Twist>("/vision/blobdetection", 1);
     }
 
@@ -34,11 +35,32 @@ public:
         img = msg;
     }
     
-    /*Detect blobs from the stored image*/
-    vector<cv::KeyPoint> detectBlobs() {
-        
+    cv_bridge::CvImagePtr convertImage() {
+        cv_bridge::CvImagePtr cv_ptr;
+        try {
+            cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::TYPE_32FC1);
+        }
+        catch (cv_bridge::Exception& e) {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return cv_ptr;
+        }
+        return cv_ptr;
     }
     
+    cv_bridge::CvImagePtr normalize(cv_bridge::CvImagePtr cv_ptr) {
+        return cv_ptr; //TODO
+    }
+    
+    /*Detect blobs from the stored image*/
+    vector<KeyPoint> detectBlobs(cv_bridge::CvImagePtr cv_ptr) {
+        vector<KeyPoint> kps;
+        return kps; //TODO
+    }
+    
+    KeyPoint getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvImagePtr cv_ptr) {
+        KeyPoint kp;
+        return kp; //TODO
+    }
     
 
     void update() {
@@ -47,21 +69,27 @@ public:
         if((ros::Time::now()-t_depth).toSec()>2.0) {
             return;
         }
+        
+        //convert image to openCV image
+        cv_bridge::CvImagePtr cv_ptr = convertImage();
+        //normalize image, remove max values
+        cv_ptr = normalize(cv_ptr);
+        //detect blobs in image
+        vector<KeyPoint> points = detectBlobs(cv_ptr);
+        //pick the closest blob
+        KeyPoint kp = getClosestBlob(points,cv_ptr);
 
 
         // calculate kinematics and send twist to robot simulation node
         geometry_msgs::Twist twist_msg;
 
-        double linear_vel = (wheel_angular_velocities[1] + wheel_angular_velocities[0])*0.5*wheel_radius_;
-        double angular_vel = (wheel_angular_velocities[1] - wheel_angular_velocities[0])*wheel_radius_/base_;
-
-        twist_msg.linear.x = linear_vel;
-        twist_msg.linear.y = 0.0;
+        twist_msg.linear.x = kp.pt.x;
+        twist_msg.linear.y = kp.pt.y;
         twist_msg.linear.z = 0.0;
 
         twist_msg.angular.x = 0.0;
         twist_msg.angular.y = 0.0;
-        twist_msg.angular.z = angular_vel;
+        twist_msg.angular.z = 0.0;
 
         blob_publisher.publish(twist_msg);
 
@@ -70,17 +98,13 @@ public:
 private:
 
     ros::Time t_depth;
-    
-    const sensor_msgs::Image::ConstPtr &img;
-
-    double wheel_radius_;
-    double base_;
+    sensor_msgs::Image::ConstPtr img;
 };
 
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "blobdetector");
+    ros::init(argc, argv, "blobDetector");
 
     BlobDetectorNode bdn;
 
@@ -89,8 +113,8 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(control_frequency);
 
-    while(kobuki_motors_node.n_.ok()) {
-        kobuki_motors_node.updateMotors();
+    while(bdn.nh.ok()) {
+        bdn.update();
         ros::spinOnce();
         loop_rate.sleep();
     }

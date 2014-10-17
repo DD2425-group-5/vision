@@ -4,7 +4,8 @@ project(blobdetection)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs image_transport cv_bridge)
+find_package(OpenCV REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -14,6 +15,6 @@ catkin_package(
 )
 
 
-#add_executable(blobdetetor src/blobdetector.cpp)
-#target_link_libraries(blobdetector ${catkin_LIBRARIES})
-#add_dependencies(blobdetector ${catkin_EXPORTED_TARGETS})
+add_executable(blobDetector src/blobdetector.cpp)
+target_link_libraries(blobDetector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(blobDetector ${catkin_EXPORTED_TARGETS})

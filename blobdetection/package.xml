@@ -15,6 +15,12 @@
   <run_depend>roscpp</run_depend>
   <buildtool_depend>sensor_msgs</buildtool_depend>
   <run_depend>sensor_msgs</run_depend>
+  <buildtool_depend>image_transport</buildtool_depend>
+  <run_depend>image_transport</run_depend>
+  <buildtool_depend>opencv2</buildtool_depend>
+  <run_depend>opencv2</run_depend>  
+  <buildtool_depend>cv_bridge</buildtool_depend>
+  <run_depend>cv_bridge</run_depend>  
 
 
   <!-- The export tag contains other, unspecified, tags -->
