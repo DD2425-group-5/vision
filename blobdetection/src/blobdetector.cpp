@@ -7,6 +7,11 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <opencv/highgui.h>
+
+#include <iostream>
+
+#include <limits>
 
 using namespace cv;
 
@@ -22,12 +27,16 @@ public:
 
         t_depth = ros::Time::now();
 
-        depth_subscriber = nh.subscribe("/image_converter/output_video", 1, &BlobDetectorNode::depthCallback, this);
+
+        cv::namedWindow("windowname");
+
+
+        depth_subscriber = nh.subscribe("/camera/depth/image_raw", 1, &BlobDetectorNode::depthCallback, this);
         blob_publisher = nh.advertise<geometry_msgs::Twist>("/vision/blobdetection", 1);
     }
 
     ~BlobDetectorNode(){
-        
+
     }
 
     void depthCallback(const sensor_msgs::Image::ConstPtr &msg) {
@@ -44,6 +53,62 @@ public:
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return cv_ptr;
         }
+        /*Mat m(img->height,img->width,CV_32SC1);
+        numsteps = img->step*img->height;
+
+        for(int i = 0; i < numsteps; ++i) {
+
+        }*/
+
+
+
+
+        float min = std::numeric_limits<float>::max();
+        float max = std::numeric_limits<float>::min();
+        int count = 0;
+        for (int i = 0; i < cv_ptr->image.rows; i++) {
+            const float* Mi = cv_ptr->image.ptr<float>(i);
+            for(int j = 0; j < cv_ptr->image.cols; j++){
+             //if (j = 0){
+             //    ROS_INFO_STREAM("" << Mi[j]);
+             //}
+             //   std::cout << Mi[j] << std::endl;
+             if (Mi[j] > 1e10){
+
+                 count++;
+                  //cv_ptr->image.at<double>(i, j) = 255.0;
+                  continue;
+            }
+
+            if (Mi[j] < min)
+                min = Mi[j];
+            if (Mi[j] > max)
+                max = Mi[j];
+            }
+
+        }
+
+        maxval = max;
+
+        //ROS_INFO_STREAM("Min: " << min << ", Max: " << max << ", Count: " << count);
+
+        for (int i = 0; i < cv_ptr->image.rows; ++i)
+        {
+            for(int j = 0; j < cv_ptr->image.cols; ++j){
+                //if(cv_ptr->image.at<double>(i,j) )
+                cv_ptr->image.at<float>(i,j) =  (cv_ptr->image.at<float>(i,j) / max)*255;
+            }
+
+        }
+
+
+        Mat m(img->height,img->width,CV_8UC1);
+        cv_ptr->image.convertTo(m,CV_8UC1);
+
+        cv_ptr->image = m;
+
+
+
         return cv_ptr;
     }
     
@@ -55,14 +120,14 @@ public:
     vector<KeyPoint> detectBlobs(cv_bridge::CvImagePtr cv_ptr) {
         // set up the parameters (check the defaults in opencv's code in blobdetector.cpp)
         cv::SimpleBlobDetector::Params params;
-        params.minDistBetweenBlobs = 50.0f;
+        params.minDistBetweenBlobs = 10.0f;
         params.filterByInertia = false;
         params.filterByConvexity = false;
         params.filterByColor = false;
         params.filterByCircularity = false;
         params.filterByArea = true;
-        params.minArea = 20.0f;
-        params.maxArea = 500.0f;
+        params.minArea = 2500.0f;
+        params.maxArea = 400000.0f;
         // ... any other params you don't want default value
 
         // set up and create the detector using the parameters
@@ -76,15 +141,47 @@ public:
     }
     
     KeyPoint getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvImagePtr cv_ptr) {
+        int min = -2000;
+        int minindex = 0;
         KeyPoint kp;
-        return kp; //TODO
+        if(blobs.size() == 0) {
+            kp.pt.x = -1;
+            kp.pt.y = -1;
+            return kp;
+        }
+
+        std::cout << "blobs found: " << blobs.size() << std::endl;
+
+
+        for(int i = 0; i < blobs.size();++i) {
+            //ROS_INFO("x: ",blobs[i].pt.x," , y: ", blobs[i].pt.y );
+            char tmpa = cv_ptr->image.at<char>(blobs[i].pt.y,blobs[i].pt.x);
+            //std::cout << (unsigned int)tmpa << std::endl;
+            int tmp = (int) tmpa;
+            if(tmp > min) {
+                min = tmp;
+                minindex = i;
+            }
+        }
+
+
+
+
+        cv::circle(cv_ptr->image, cv::Point(blobs[minindex].pt.x, blobs[minindex].pt.y),
+                   blobs[minindex].size/2, CV_RGB(255,255,255));
+        cv::imshow("windowname",cv_ptr->image);
+        cv::waitKey(3);
+
+        kp.pt.x = blobs[minindex].pt.x;
+        kp.pt.y = min;
+        return kp;
     }
     
 
     void update() {
         // if more than 2 seconds have passed and no messages have been received,
         // stop sending
-        if((ros::Time::now()-t_depth).toSec()>2.0) {
+        if((ros::Time::now()-t_depth).toSec()>1.0) {
             return;
         }
         
@@ -92,10 +189,14 @@ public:
         cv_bridge::CvImagePtr cv_ptr = convertImage();
         //normalize image, remove max values
         cv_ptr = normalize(cv_ptr);
+        //if(1) return;
+
         //detect blobs in image
         vector<KeyPoint> points = detectBlobs(cv_ptr);
         //pick the closest blob
         KeyPoint kp = getClosestBlob(points,cv_ptr);
+
+        ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
 
         // calculate kinematics and send twist to robot simulation node
         geometry_msgs::Twist twist_msg;
@@ -116,6 +217,8 @@ private:
 
     ros::Time t_depth;
     sensor_msgs::Image::ConstPtr img;
+    float maxval;
+
 };
 
 
@@ -129,6 +232,9 @@ int main(int argc, char **argv)
     double control_frequency = 10.0;
 
     ros::Rate loop_rate(control_frequency);
+    for(int i = 0; i < 10; ++i)
+        loop_rate.sleep();
+
 
     while(bdn.nh.ok()) {
         bdn.update();
