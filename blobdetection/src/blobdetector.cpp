@@ -53,8 +53,26 @@ public:
     
     /*Detect blobs from the stored image*/
     vector<KeyPoint> detectBlobs(cv_bridge::CvImagePtr cv_ptr) {
-        vector<KeyPoint> kps;
-        return kps; //TODO
+        // set up the parameters (check the defaults in opencv's code in blobdetector.cpp)
+        cv::SimpleBlobDetector::Params params;
+        params.minDistBetweenBlobs = 50.0f;
+        params.filterByInertia = false;
+        params.filterByConvexity = false;
+        params.filterByColor = false;
+        params.filterByCircularity = false;
+        params.filterByArea = true;
+        params.minArea = 20.0f;
+        params.maxArea = 500.0f;
+        // ... any other params you don't want default value
+
+        // set up and create the detector using the parameters
+        cv::Ptr<cv::FeatureDetector> blob_detector = new cv::SimpleBlobDetector(params);
+        blob_detector->create("SimpleBlob");
+
+        // detect!
+        vector<cv::KeyPoint> keypoints;
+        blob_detector->detect(cv_ptr->image,keypoints);
+        return keypoints; //TODO
     }
     
     KeyPoint getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvImagePtr cv_ptr) {
@@ -79,13 +97,12 @@ public:
         //pick the closest blob
         KeyPoint kp = getClosestBlob(points,cv_ptr);
 
-
         // calculate kinematics and send twist to robot simulation node
         geometry_msgs::Twist twist_msg;
 
         twist_msg.linear.x = kp.pt.x;
-        twist_msg.linear.y = kp.pt.y;
-        twist_msg.linear.z = 0.0;
+        twist_msg.linear.y = 0.0;
+        twist_msg.linear.z = kp.pt.y;
 
         twist_msg.angular.x = 0.0;
         twist_msg.angular.y = 0.0;
