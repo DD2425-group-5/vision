@@ -20,6 +20,8 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
      * float references is important, otherwise the values that come out are
      * really weird
      */
+     //For naiveDetection this is not needed.
+     /*
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
     int count = 0;
@@ -34,7 +36,7 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
     }
 
     maxval = max;
-
+    */
     //ROS_INFO_STREAM("Min: " << min << ", Max: " << max << ", Count: " << count);
 
     /**
@@ -42,24 +44,28 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
      * happens Need to put values into the range 0-255, otherwise the conversion
      * afterwards will not have the desired result.
      */
-    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+    //For naive detection this is probably not needed
+    /*for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for(int j = 0; j < cv_ptr->image.cols; ++j) {
 	    cv_ptr->image.at<float>(i,j) =  (cv_ptr->image.at<float>(i,j) / max)*255;
 	}
-    }
+    }*/
 
     /**
      * Need to convert to CV_8UC1, otherwise the SimpleBlobDetector doesn't work, 
      * crashes at either the thresholding or contour stage.
      */
-    Mat m(img->height,img->width,CV_8UC1);
+    //The naiveDetection method requires it to be floats.
+    /*Mat m(img->height,img->width,CV_8UC1);
     cv_ptr->image.convertTo(m,CV_8UC1);
-    cv_ptr->image = m;
+    cv_ptr->image = m;*/
 
     return cv_ptr;
 }
     
 cv_bridge::CvImagePtr BlobDetectorNode::normalize(cv_bridge::CvImagePtr cv_ptr) {
+    //normalization of image I: I_n = (I-mean(I))/std(I), where std is the standard deviation.
+
     return cv_ptr; //TODO
 }
     
@@ -155,8 +161,8 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
         if(closest_point.size() < num_closest_pixels) {
             //for the first points, just append to the vector
             KeyPoint kp;
-            kp.x = j;
-            kp.y = i;
+            kp.pt.x = j;
+            kp.pt.y = i;
             closest_points.push_back(kp);
         } else {
             //when we have num_closest_points in the vector
@@ -223,9 +229,10 @@ void BlobDetectorNode::update() {
     //if(1) return;
 
     //detect blobs in image
-    vector<KeyPoint> points = detectBlobs(cv_ptr);
+    //vector<KeyPoint> points = detectBlobs(cv_ptr);
     //pick the closest blob
-    KeyPoint kp = getClosestBlob(points,cv_ptr);
+    //KeyPoint kp = getClosestBlob(points,cv_ptr);
+    KeyPoint kp = naiveDetection(cv_ptr);
 
     ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
 
