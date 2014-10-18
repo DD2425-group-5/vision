@@ -65,8 +65,47 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
     
 cv_bridge::CvImagePtr BlobDetectorNode::normalize(cv_bridge::CvImagePtr cv_ptr) {
     //normalization of image I: I_n = (I-mean(I))/std(I), where std is the standard deviation.
+    //std definition: http://www.mathworks.se/help/matlab/ref/std.html
+    //using nr 1 here.
+    //using all floats here because the image is in float format.
+    
+    //TODO: probably faster to iterate via iterators, but I'm not sure of syntax...
+    
+    float mean = 0;
+    float std = 0;
+    float size = ((float)cv_ptr->image.rows) * ((float)cv_ptr->image.cols);
+    
+    //calculate mean
+    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+	for (int j = 0; j < cv_ptr->image.cols; ++j) {
+        mean += cv_ptr->image.at<float>(i,j);
+    }
+    }
+    
+    mean = mean/size;
+    mean_img = mean; //save as class variable to be able to reverse normalization.
+    
+    //calculate std
+    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+	for (int j = 0; j < cv_ptr->image.cols; ++j) {
+        std += std::pow(cv_ptr->image.at<float>(i,j) - mean,2);
+    }
+    }
 
-    return cv_ptr; //TODO
+    std = std / (size-1);
+    std = std::sqrt(std);
+    std_img = std;
+    
+    //normalize image
+    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+	for (int j = 0; j < cv_ptr->image.cols; ++j) {
+        float val = cv_ptr->image.at<float>(i,j);
+        cv_ptr->image.at<float>(i,j) = (val - mean)/std; //not sure if this works.
+        //basically: pixel = (pixel-mean)/std needs to be done.
+    }
+    }
+    
+    return cv_ptr;
 }
     
 /*Detect blobs from the stored image*/
@@ -170,7 +209,7 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
             KeyPoint minkp;
             int minindex = -1;
             for(int k = 0; k < closest_point.size(),++k) {
-                if(cv_ptr.at<float>(j,i) < cv_ptr.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
+                if(cv_ptr.at<float>(i,j) < cv_ptr.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
                     minindex = k;
                     minkp.pt.y = i;
                     minkp.pt.x = j;
@@ -225,7 +264,7 @@ void BlobDetectorNode::update() {
     //convert image to openCV image
     cv_bridge::CvImagePtr cv_ptr = convertImage();
     //normalize image, remove max values
-    cv_ptr = normalize(cv_ptr);
+    cv_ptr = normalize(cv_ptr,150);
     //if(1) return;
 
     //detect blobs in image
@@ -233,6 +272,9 @@ void BlobDetectorNode::update() {
     //pick the closest blob
     //KeyPoint kp = getClosestBlob(points,cv_ptr);
     KeyPoint kp = naiveDetection(cv_ptr);
+    
+    //unnormalize depth.
+    kp.pt.y = (kp.pt.y * std_img) + mean_img;
 
     ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
 

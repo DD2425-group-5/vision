@@ -9,6 +9,8 @@
 #include <opencv/highgui.h>
 #include <iostream>
 #include <limits>
+#include <vector>
+#include <cmath>
 
 using namespace cv;
 
@@ -30,6 +32,9 @@ private:
     ros::Time t_depth;
     sensor_msgs::Image::ConstPtr img;
     float maxval;
+    
+    float mean_img;
+    float std_img;
 
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
