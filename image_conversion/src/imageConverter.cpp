@@ -4,6 +4,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <limits>
 
 static const std::string OPENCV_WINDOW = "Image window";
 
@@ -19,7 +20,7 @@ public:
         // Subscrive to input video feed and publish output video feed
         image_sub_ = it_.subscribe("/camera/depth/image_rect", 1, &ImageConverter::imageCb, this);
         image_pub_ = it_.advertise("/image_converter/output_video", 1);
-
+	ROS_INFO("Started image converter.");
         cv::namedWindow(OPENCV_WINDOW);
     }
 
@@ -30,16 +31,40 @@ public:
     void imageCb(const sensor_msgs::ImageConstPtr& msg) {
         cv_bridge::CvImagePtr cv_ptr;
         try {
-            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
         }
         catch (cv_bridge::Exception& e) {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
 
-        // Draw an example circle on the video stream
-        if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
-            cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
+	double min = std::numeric_limits<double>::max();
+	double max = std::numeric_limits<double>::min();
+	int count = 0;
+	for (int i = 0; i < cv_ptr->image.rows; i++)
+	{
+	    const double* Mi = cv_ptr->image.ptr<double>(i);
+	    for(int j = 0; j < cv_ptr->image.cols; j++){
+		// if (j = 0){
+		//     ROS_INFO_STREAM("" << Mi[j]);
+		// }
+		// if (Mi[j] > 1e150){
+		//     count++;
+		//      cv_ptr->image.at<double>(i, j) = 0;
+		//      continue;
+		// }
+		
+		if (Mi[j] < min)
+		    min = Mi[j];
+		if (Mi[j] > max)
+		    max = Mi[j];
+	    }
+		
+	}
+
+	ROS_INFO_STREAM("Max is " << max);
+	ROS_INFO_STREAM("Min is " << min);
+	ROS_INFO_STREAM("Reject count " << count);
 
         // Update GUI Window
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
