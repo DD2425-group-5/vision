@@ -119,6 +119,94 @@ KeyPoint BlobDetectorNode::getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvI
     kp.pt.y = min;
     return kp;
 }
+
+//A struct used for sorting in the naiveDecetion algorithm
+//initialize an object of this struct with an image and input
+//it to the sort function. Sorts by how close the points are.
+//in ascending or descending? I can never remember this...
+//NOTE: not used in the current algorithm. Can probably remove.
+struct comp {
+    cv_bridge::CvImagePtr cv_ptr;
+    
+    comp() {}
+    comp(cv_bridge::CvImagePtr image_pointer) {
+        cv_ptr = image_pointer;
+    }
+    
+    bool operator() (const KeyPoint& kp1, const KeyPoint& kp2) {
+        int row1 = (int) kp1.pt.y;
+        int col1 = (int) kp1.pt.x;
+        int row2 = (int) kp2.pt.y;
+        int col2 = (int) kp2.pt.x;
+        return cv_ptr.at<float>(row1,col1) < cv_ptr.at<float>(row2,col2);
+    }
+};
+
+/* Some code for own naive blob detection. Take the num_closest_pixels pixels and just assume that
+is the blob. 
+
+Complexity of this algorithm: width*height*num_closest_pixels.
+*/
+KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_closest_pixels) {
+    std::vector<KeyPoint> closest_points;
+    
+    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+	for (int j = 0; j < cv_ptr->image.cols; ++j) {
+        if(closest_point.size() < num_closest_pixels) {
+            //for the first points, just append to the vector
+            KeyPoint kp;
+            kp.x = j;
+            kp.y = i;
+            closest_points.push_back(kp);
+        } else {
+            //when we have num_closest_points in the vector
+            //find the point furthest away and replace it with this one.
+            KeyPoint minkp;
+            int minindex = -1;
+            for(int k = 0; k < closest_point.size(),++k) {
+                if(cv_ptr.at<float>(j,i) < cv_ptr.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
+                    minindex = k;
+                    minkp.pt.y = i;
+                    minkp.pt.x = j;
+                }
+            }
+            
+            if(minindex != -1) {
+                //means we found a point further away.
+                closest_points[minindex].x = minkp.x;
+                closest_points[minindex].y = minkp.y;
+            }
+        }
+	}
+    }
+    
+    //now we have a vector of keypoints of size num_closest_pixels
+    //they contain the pixels with the smallest depth to the camera.
+    //Note: no normalization is done here. This assumes a normalized image.
+    //I don't know how necessary the normalization is but its pretty important
+    //if we get a bunch of distances that are just 0.
+    //normalization of image I: I_n = (I-mean(I))/std(I), where std is the standard deviation.
+    
+    //so now find out average depth, and average position.
+    //to make it all cleaner perhaps we should consider just having a struct with 3 values:
+    //int row, int col, float depth.
+    float depth_mean = 0;
+    int x_mean = 0;
+    //do not calculate average y, we don't need that.
+    
+    for(int i = 0; i < closest_points.size(); ++i) {
+        depth_mean += cv_ptr.at<float>(closest_points[i].pt.y, closest_points[i].pt.x);
+        x_mean += closest_points[i];
+    }
+    
+    x_mean = x_mean / ((int) closest_points.size()); //integer division, should be ok.
+    depth_mean = depth_mean / ((float) closest_points.size());
+    
+    KeyPoint kp; //such abuse of KeyPoint... we really should make our own structs.
+    kp.x = x_mean;
+    kp.y = depth_mean;
+    return kp;
+}
     
 
 void BlobDetectorNode::update() {

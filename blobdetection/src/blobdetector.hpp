@@ -22,6 +22,7 @@ public:
     cv_bridge::CvImagePtr normalize(cv_bridge::CvImagePtr cv_ptr);
     vector<KeyPoint> detectBlobs(cv_bridge::CvImagePtr cv_ptr);
     KeyPoint getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvImagePtr cv_ptr);
+    KeyPoint naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_closest_pixels);
     void update();
     BlobDetectorNode(int argc, char* argv[]);
 
