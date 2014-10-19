@@ -20,8 +20,6 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
      * float references is important, otherwise the values that come out are
      * really weird
      */
-    //For naiveDetection this is not needed.
-     
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
     int count = 0;

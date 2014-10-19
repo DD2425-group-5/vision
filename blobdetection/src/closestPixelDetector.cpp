@@ -14,6 +14,9 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImage() {
 	ROS_ERROR("cv_bridge exception: %s", e.what());
 	return cv_ptr;
     }
+    
+   
+
     return cv_ptr;
 }
     
@@ -32,8 +35,8 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::normalize(cv_bridge::CvImagePtr 
     //calculate mean
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        mean += cv_ptr->image.at<float>(i,j);
-    }
+	    mean += cv_ptr->image.at<float>(i,j);
+	}
     }
     
     mean = mean/size;
@@ -42,8 +45,8 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::normalize(cv_bridge::CvImagePtr 
     //calculate std
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        std += std::pow(cv_ptr->image.at<float>(i,j) - mean,2);
-    }
+	    std += std::pow(cv_ptr->image.at<float>(i,j) - mean,2);
+	}
     }
 
     std = std / (size-1);
@@ -53,16 +56,84 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::normalize(cv_bridge::CvImagePtr 
     //normalize image
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        float val = cv_ptr->image.at<float>(i,j);
-        cv_ptr->image.at<float>(i,j) = (val - mean)/std; //not sure if this works.
-        //basically: pixel = (pixel-mean)/std needs to be done.
-    }
+	    float val = cv_ptr->image.at<float>(i,j);
+	    cv_ptr->image.at<float>(i,j) = (val - mean)/std; //not sure if this works.
+	    //basically: pixel = (pixel-mean)/std needs to be done.
+	}
     }
     
     return cv_ptr;
 }
+
+cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::CvImagePtr imgPtr) {
+    /**
+     * Find min and max values of the image to use in normalisation. Using the
+     * float references is important, otherwise the values that come out are
+     * really weird
+     */
+    float min = std::numeric_limits<float>::max();
+    float max = std::numeric_limits<float>::min();
+    int count = 0;
+    for (int i = 0; i < imgPtr->image.rows; i++) {
+	const float* Mi = imgPtr->image.ptr<float>(i);
+	for(int j = 0; j < imgPtr->image.cols; j++){
+	    if (Mi[j] < min)
+		min = Mi[j];
+	    if (Mi[j] > max)
+		max = Mi[j];
+	}
+    }
+
+    float maxval = max;
+    //ROS_INFO_STREAM("Min: " << min << ", Max: " << max << ", Count: " << count);
+
+    /**
+     * Again, need to make sure that at<float> is used otherwise weird stuff
+     * happens Need to put values into the range 0-255, otherwise the conversion
+     * afterwards will not have the desired result.
+     */
     
-//A struct used for sorting in the naiveDecetion algorithm
+    for (int i = 0; i < imgPtr->image.rows; ++i) {
+	for(int j = 0; j < imgPtr->image.cols; ++j) {
+	    imgPtr->image.at<float>(i,j) =  (imgPtr->image.at<float>(i,j) / max)*255;
+	}
+    }
+
+    /**
+     * Need to convert to CV_8UC1, otherwise the SimpleBlobDetector doesn't work, 
+     * crashes at either the thresholding or contour stage.
+     */
+    Mat m(imgPtr->image.rows,imgPtr->image.cols,CV_8UC1);
+    imgPtr->image.convertTo(m,CV_8UC1);
+    imgPtr->image = m;
+
+    
+    return imgPtr;
+}
+
+/**
+ * Flattens a cv::Mat into a vector, stacking the rows. The template should
+ * specify the type of data inside the matrix, just like all other cases when
+ * referring to data inside it. Returns a struct with fields x,y and value. The
+ * row is inserted into y, column into x.
+ */
+template <typename T>
+std::vector< ClosestPixelDetectorNode::DepthPoint<T> > ClosestPixelDetectorNode::cvMatToVector(cv::Mat matrix) {
+    std::vector< ClosestPixelDetectorNode::DepthPoint<T> > flattened;
+    
+    // populate the flattened vector
+    for (int row = 0; row < matrix.rows; row++) {
+	const T* rowptr = matrix.ptr<T>(row); // extract row of the matrix
+	// create depthpoints and insert them into the flattened vector.
+	for (int col = 0; col < matrix.cols; col++) {
+	    flattened.push_back(ClosestPixelDetectorNode::DepthPoint<T>(col, row, rowptr[col]));
+	}
+    }
+
+    return flattened;
+}
+    
+//A struct used for sorting in the naiveDetection algorithm
 //initialize an object of this struct with an image and input
 //it to the sort function. Sorts by how close the points are.
 //in ascending or descending? I can never remember this...
@@ -87,7 +158,10 @@ struct comp {
 /* Some code for own naive blob detection. Take the num_closest_pixels pixels and just assume that
 is the blob. 
 
-Complexity of this algorithm: width*height*num_closest_pixels.
+Complexity of this algorithm: width*height*num_closest_pixels. -> takes way too long to get anything out. Tried with 500 closest points, and takes ~1sec to process a single image.
+
+Use built in cpp nth_element? Should be able to extract the relevant values from
+the resulting iterators. Might need to flatten the matrix to do this, though.
 */
 KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_closest_pixels) {
     std::vector<KeyPoint> closest_points;
@@ -134,25 +208,25 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
     float depth_mean = 0;
     int x_mean = 0;
 
-    // Create an image where indices in the closest points vector are white, all others black.
-    cv_bridge::CvImagePtr blobImage;
-    
-    std::cout << cv_ptr->image.rows << ":" << cv_ptr->image.cols << std::endl;
+    // Create a matrix where indices in the closest points vector are white, all others black.
+    cv::Mat m = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC1);
 
     //do not calculate average y, we don't need that.    
     for(int i = 0; i < closest_points.size(); ++i) {
-        depth_mean += cv_ptr->image.at<float>(closest_points[i].pt.y, closest_points[i].pt.x);
-//	blobImage->image.at<float>(closest_points[i].pt.y, closest_points[i].pt.x) = 255;
-        x_mean += closest_points[i].pt.x;
+	float y = closest_points[i].pt.y;
+	float x = closest_points[i].pt.x;
+	//std::cout << i << ": (" << x << ", " << y << ")" << std::endl;
+        depth_mean += cv_ptr->image.at<float>(y, x);
+	m.at<float>(y, x) = 255;
+        x_mean += x;
     }
+    
+    cv::imshow("DepthImage", cv_ptr->image);
+    cv::waitKey(3);
 
-    cv::Mat m;
-    blobImage->image.convertTo(m, CV_8UC1);
-    blobImage->image = m;
-        
-    std::cout << "imshow" << std::endl;
-    cv::imshow("BlobImage", cv_ptr->image);
-    std::cout << "after imshow" << std::endl;
+    cv::imshow("BlobImage", m);
+    cv::waitKey(3);
+    
     x_mean = x_mean / ((int) closest_points.size()); //integer division, should be ok.
     depth_mean = depth_mean / ((float) closest_points.size());
     
@@ -160,6 +234,96 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
     kp.pt.x = x_mean;
     kp.pt.y = depth_mean;
     return kp;
+}
+
+/**
+ * Find the average point of the nClosest closest points in the given image.
+ * First, flattens the image matrix into a vector, and then uses the built in
+ * function nth_element to rearrange array elements in such a way that all
+ * elements below a certain index have a value lower or equal to the value at
+ * that index. Those elements are out of order, but we don't care about ordering
+ * since we need a mean. 
+ *
+ * The ignoreZeros flag specifies whether the function should take into account
+ * zeros in the image. If false, the mean will be computed using a mix of valid
+ * and invalid points (assuming that all points with zero depth are invalid).
+ * Otherwise, all points used in the computation will be valid.
+ */
+ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetectionNthElement(cv_bridge::CvImagePtr imgPtr, int nClosest, bool ignoreZeros)
+{
+    ROS_INFO("start mat->vector");
+    // Flatten the image matrix into a vector so that it can be used in the next stage
+    std::vector< DepthPoint<float> > flat = cvMatToVector<float>(imgPtr->image);
+    ROS_INFO("end mat->vector");
+    ROS_INFO("start nthelement");
+    /**
+     * Use nth_element to order the DepthPoints in the vector in such a way that
+     * the element at flat[nClosest] is the one that would be in that position
+     * in a sorted array. That is, in the resulting vector, flat[nClosest] is
+     * the only one that is correctly sorted. The other elements are left
+     * without any specific order, except that none of the elements preceding
+     * nth are greater than it, and none of the elements following it are less.
+     *
+     * Thus, we can be sure that the depth of any element at any index below
+     * nClosest is <= to the depth of nClosest itself. Since we don't care about
+     * any particular ordering, we can exploit this fact by simply taking the
+     * mean of lower-index elements to get our "blob" centre.
+     */
+    std::nth_element(flat.begin(), flat.begin() + nClosest, flat.end(), DepthPoint<float>());
+    ROS_INFO("end nthelement");
+    // Store information about the closest points in here
+    //cv::Mat blobMat = cv::Mat::zeros(imgPtr->image.rows, imgPtr->image.cols, CV_32F);
+    cv::Mat blobMat = cv::Mat::zeros(imgPtr->image.rows, imgPtr->image.cols, CV_8UC1);
+
+    int xSum = 0;
+    int ySum = 0;
+    float depthSum = 0;
+    int nZeros = 0;
+    ROS_INFO("Computing means");
+    for (int i = 0; i < nClosest; i++) {
+	// Perhaps these if statements could be improved. I think branch
+	// prediction mitigates most of the possible slowdown if done like this.
+	if (!ignoreZeros){ // if counting zeros, just add all values
+	    xSum += flat[i].x;
+	    ySum += flat[i].y;
+	    depthSum += flat[i].value;
+	    blobMat.at<int>(flat[i].y, flat[i].x) = 255;
+	} else {
+	    // need to exclude zeros and count nonzero values to get correct mean
+	    if (flat[i].value == 0) {
+		nZeros++;
+                // Need to loop an additional time for each zero. Resetting i
+                // will break things, as the zero and nonzero values are mixed
+                // with each other. Can't just reset i and start counting
+                // properly once we reach a region where all values are nonzero.
+		i--; 
+		continue;
+	    }
+	    xSum += flat[i].x;
+	    ySum += flat[i].y;
+	    depthSum += flat[i].value;
+	    blobMat.at<int>(flat[i].y, flat[i].x) = 255;
+	    // std::cout << " nonzero";
+	    // xSum += flat[i].x;
+	    // std::cout << " x added";
+	    // ySum += flat[i].y;
+	    // std::cout << " y added";
+	    // depthSum += flat[i].value;
+	    // std::cout << "depth added";
+	    // blobMat.at<int>(flat[i].y, flat[i].x) = 255;
+	    // std::cout << " mat updated" << std::endl;
+
+	}
+    }
+    
+    ROS_INFO("Means computed");
+    cv::imshow("BlobImage", blobMat);
+    ROS_INFO("blob shown");
+    cv::imshow("DepthImage", imgPtr->image);
+    ROS_INFO("depth shown");
+    cv::waitKey(3);
+
+    return DepthPoint<float>(xSum/nClosest, ySum/nClosest, depthSum/nClosest);
 }
     
 
@@ -171,30 +335,41 @@ void ClosestPixelDetectorNode::update() {
     }
         
     //convert image to openCV image
+    ROS_INFO("Converting image");
     cv_bridge::CvImagePtr cv_ptr = convertImage();
-    //normalize image, remove max values
-    cv_ptr = normalize(cv_ptr);
-    //if(1) return;
-
-    KeyPoint kp = naiveDetection(cv_ptr, 150);
     
+    ROS_INFO("Image to range");
+    cv_ptr = convertImageToRange(cv_ptr);
+    ROS_INFO("Nthelement detection");
+    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 10000, true);
+    ROS_INFO("Printing mean");
+    std::cout << closestPixelsMean << std::endl;
+    ROS_INFO("Printed mean");
+    // normalize image, remove max values. Doing this normalisation results in the
+    // smallest distances being found in places where there is no actual data
+    // (i.e. on the borders of the image, in the regions where there is no data
+    // due to camera positioning.)
+    //ROS_INFO("Normalising image");
+    //cv_ptr = normalize(cv_ptr);
+    //if(1) return;
+    //ROS_INFO("Naive detection");
+    //KeyPoint kp = naiveDetection(cv_ptr, 500);
     //unnormalize depth.
-    kp.pt.y = (kp.pt.y * std_img) + mean_img;
-
-    ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
+//    kp.pt.y = (kp.pt.y * std_img) + mean_img;
+    //  ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
 
     // calculate kinematics and send twist to robot simulation node
-    geometry_msgs::Twist twist_msg;
+    // geometry_msgs::Twist twist_msg;
 
-    twist_msg.linear.x = kp.pt.x;
-    twist_msg.linear.y = 0.0;
-    twist_msg.linear.z = kp.pt.y;
+    // twist_msg.linear.x = kp.pt.x;
+    // twist_msg.linear.y = 0.0;
+    // twist_msg.linear.z = kp.pt.y;
 
-    twist_msg.angular.x = 0.0;
-    twist_msg.angular.y = 0.0;
-    twist_msg.angular.z = 0.0;
+    // twist_msg.angular.x = 0.0;
+    // twist_msg.angular.y = 0.0;
+    // twist_msg.angular.z = 0.0;
 
-    blob_publisher.publish(twist_msg);
+    // blob_publisher.publish(twist_msg);
 }
 
 
@@ -203,6 +378,7 @@ ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
     ros::NodeHandle handle;
     t_depth = ros::Time::now();
     cv::namedWindow("BlobImage");
+    cv::namedWindow("DepthImage");
     depth_subscriber = handle.subscribe("/camera/depth/image_raw", 1, &ClosestPixelDetectorNode::depthCallback, this);
     blob_publisher = handle.advertise<geometry_msgs::Twist>("/vision/pixeldetection", 1);
     return handle;
