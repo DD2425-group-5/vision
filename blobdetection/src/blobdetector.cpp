@@ -183,7 +183,7 @@ struct comp {
         int col1 = (int) kp1.pt.x;
         int row2 = (int) kp2.pt.y;
         int col2 = (int) kp2.pt.x;
-        return cv_ptr.at<float>(row1,col1) < cv_ptr.at<float>(row2,col2);
+        return cv_ptr->image.at<float>(row1,col1) < cv_ptr->image.at<float>(row2,col2);
     }
 };
 
@@ -197,7 +197,7 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
     
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        if(closest_point.size() < num_closest_pixels) {
+        if(closest_points.size() < num_closest_pixels) {
             //for the first points, just append to the vector
             KeyPoint kp;
             kp.pt.x = j;
@@ -208,8 +208,8 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
             //find the point furthest away and replace it with this one.
             KeyPoint minkp;
             int minindex = -1;
-            for(int k = 0; k < closest_point.size(),++k) {
-                if(cv_ptr.at<float>(i,j) < cv_ptr.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
+            for(int k = 0; k < closest_points.size(); ++k) {
+                if(cv_ptr->image.at<float>(i,j) < cv_ptr->image.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
                     minindex = k;
                     minkp.pt.y = i;
                     minkp.pt.x = j;
@@ -218,8 +218,8 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
             
             if(minindex != -1) {
                 //means we found a point further away.
-                closest_points[minindex].x = minkp.x;
-                closest_points[minindex].y = minkp.y;
+                closest_points[minindex].pt.x = minkp.pt.x;
+                closest_points[minindex].pt.y = minkp.pt.y;
             }
         }
 	}
@@ -240,16 +240,16 @@ KeyPoint BlobDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_
     //do not calculate average y, we don't need that.
     
     for(int i = 0; i < closest_points.size(); ++i) {
-        depth_mean += cv_ptr.at<float>(closest_points[i].pt.y, closest_points[i].pt.x);
-        x_mean += closest_points[i];
+        depth_mean += cv_ptr->image.at<float>(closest_points[i].pt.y, closest_points[i].pt.x);
+        x_mean += closest_points[i].pt.x;
     }
     
     x_mean = x_mean / ((int) closest_points.size()); //integer division, should be ok.
     depth_mean = depth_mean / ((float) closest_points.size());
     
     KeyPoint kp; //such abuse of KeyPoint... we really should make our own structs.
-    kp.x = x_mean;
-    kp.y = depth_mean;
+    kp.pt.x = x_mean;
+    kp.pt.y = depth_mean;
     return kp;
 }
     
@@ -264,14 +264,14 @@ void BlobDetectorNode::update() {
     //convert image to openCV image
     cv_bridge::CvImagePtr cv_ptr = convertImage();
     //normalize image, remove max values
-    cv_ptr = normalize(cv_ptr,150);
+    cv_ptr = normalize(cv_ptr);
     //if(1) return;
 
     //detect blobs in image
     //vector<KeyPoint> points = detectBlobs(cv_ptr);
     //pick the closest blob
     //KeyPoint kp = getClosestBlob(points,cv_ptr);
-    KeyPoint kp = naiveDetection(cv_ptr);
+    KeyPoint kp = naiveDetection(cv_ptr, 150);
     
     //unnormalize depth.
     kp.pt.y = (kp.pt.y * std_img) + mean_img;
