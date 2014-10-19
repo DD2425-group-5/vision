@@ -7,14 +7,11 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv/highgui.h>
-#include <limits>
 #include <vector>
 #include <cmath>
 #include <utility>
 #include <algorithm>
-#include <ostream>
 #include <iostream>
-#include <istream>
 
 using namespace cv;
 

@@ -15,8 +15,6 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImage() {
 	return cv_ptr;
     }
     
-   
-
     return cv_ptr;
 }
     
@@ -95,7 +93,7 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
     
     for (int i = 0; i < imgPtr->image.rows; ++i) {
 	for(int j = 0; j < imgPtr->image.cols; ++j) {
-	    imgPtr->image.at<float>(i,j) =  (imgPtr->image.at<float>(i,j) / max)*255;
+	    imgPtr->image.at<float>(i,j) =  imgPtr->image.at<float>(i,j) / max;
 	}
     }
 
@@ -103,9 +101,9 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
      * Need to convert to CV_8UC1, otherwise the SimpleBlobDetector doesn't work, 
      * crashes at either the thresholding or contour stage.
      */
-    Mat m(imgPtr->image.rows,imgPtr->image.cols,CV_8UC1);
-    imgPtr->image.convertTo(m,CV_8UC1);
-    imgPtr->image = m;
+//    Mat m(imgPtr->image.rows,imgPtr->image.cols,CV_8UC1);
+//    imgPtr->image.convertTo(m,CV_8UC1);
+//    imgPtr->image = m;
 
     
     return imgPtr;
@@ -132,28 +130,6 @@ std::vector< ClosestPixelDetectorNode::DepthPoint<T> > ClosestPixelDetectorNode:
 
     return flattened;
 }
-    
-//A struct used for sorting in the naiveDetection algorithm
-//initialize an object of this struct with an image and input
-//it to the sort function. Sorts by how close the points are.
-//in ascending or descending? I can never remember this...
-//NOTE: not used in the current algorithm. Can probably remove.
-struct comp {
-    cv_bridge::CvImagePtr cv_ptr;
-    
-    comp() {}
-    comp(cv_bridge::CvImagePtr image_pointer) {
-        cv_ptr = image_pointer;
-    }
-    
-    bool operator() (const KeyPoint& kp1, const KeyPoint& kp2) {
-        int row1 = (int) kp1.pt.y;
-        int col1 = (int) kp1.pt.x;
-        int row2 = (int) kp2.pt.y;
-        int col2 = (int) kp2.pt.x;
-        return cv_ptr->image.at<float>(row1,col1) < cv_ptr->image.at<float>(row2,col2);
-    }
-};
 
 /* Some code for own naive blob detection. Take the num_closest_pixels pixels and just assume that
 is the blob. 
@@ -278,12 +254,13 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
     int xSum = 0;
     int ySum = 0;
     float depthSum = 0;
-    int nZeros = 0;
+    int counted = 0;
     ROS_INFO("Computing means");
-    for (int i = 0; i < nClosest; i++) {
+    for (int i = 0; counted < nClosest; i++) {
 	// Perhaps these if statements could be improved. I think branch
 	// prediction mitigates most of the possible slowdown if done like this.
 	if (!ignoreZeros){ // if counting zeros, just add all values
+	    counted++;
 	    xSum += flat[i].x;
 	    ySum += flat[i].y;
 	    depthSum += flat[i].value;
@@ -291,14 +268,10 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
 	} else {
 	    // need to exclude zeros and count nonzero values to get correct mean
 	    if (flat[i].value == 0) {
-		nZeros++;
-                // Need to loop an additional time for each zero. Resetting i
-                // will break things, as the zero and nonzero values are mixed
-                // with each other. Can't just reset i and start counting
-                // properly once we reach a region where all values are nonzero.
-		i--; 
+                // Need to loop an additional time for each zero
 		continue;
 	    }
+	    counted++;
 	    xSum += flat[i].x;
 	    ySum += flat[i].y;
 	    depthSum += flat[i].value;
@@ -341,7 +314,7 @@ void ClosestPixelDetectorNode::update() {
     ROS_INFO("Image to range");
     cv_ptr = convertImageToRange(cv_ptr);
     ROS_INFO("Nthelement detection");
-    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 10000, true);
+    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 1000, true);
     ROS_INFO("Printing mean");
     std::cout << closestPixelsMean << std::endl;
     ROS_INFO("Printed mean");
