@@ -117,14 +117,14 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
  */
 template <typename T>
 std::vector< ClosestPixelDetectorNode::DepthPoint<T> > ClosestPixelDetectorNode::cvMatToVector(cv::Mat matrix) {
-    std::vector< ClosestPixelDetectorNode::DepthPoint<T> > flattened;
+    std::vector< ClosestPixelDetectorNode::DepthPoint<T> > flattened(matrix.cols * matrix.rows);
     
     // populate the flattened vector
     for (int row = 0; row < matrix.rows; row++) {
 	const T* rowptr = matrix.ptr<T>(row); // extract row of the matrix
 	// create depthpoints and insert them into the flattened vector.
 	for (int col = 0; col < matrix.cols; col++) {
-	    flattened.push_back(ClosestPixelDetectorNode::DepthPoint<T>(col, row, rowptr[col]));
+	    flattened[row * matrix.cols + col] = ClosestPixelDetectorNode::DepthPoint<T>(col, row, rowptr[col]);
 	}
     }
 
@@ -227,11 +227,9 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
  */
 ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetectionNthElement(cv_bridge::CvImagePtr imgPtr, int nClosest, bool ignoreZeros)
 {
-    ROS_INFO("start mat->vector");
     // Flatten the image matrix into a vector so that it can be used in the next stage
     std::vector< DepthPoint<float> > flat = cvMatToVector<float>(imgPtr->image);
-    ROS_INFO("end mat->vector");
-    ROS_INFO("start nthelement");
+
     /**
      * Use nth_element to order the DepthPoints in the vector in such a way that
      * the element at flat[nClosest] is the one that would be in that position
@@ -246,7 +244,6 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
      * mean of lower-index elements to get our "blob" centre.
      */
     std::nth_element(flat.begin(), flat.begin() + nClosest, flat.end(), DepthPoint<float>());
-    ROS_INFO("end nthelement");
     // Store information about the closest points in here
     //cv::Mat blobMat = cv::Mat::zeros(imgPtr->image.rows, imgPtr->image.cols, CV_32F);
     cv::Mat blobMat = cv::Mat::zeros(imgPtr->image.rows, imgPtr->image.cols, CV_8UC1);
@@ -255,8 +252,8 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
     int ySum = 0;
     float depthSum = 0;
     int counted = 0;
-    ROS_INFO("Computing means");
-    for (int i = 0; counted < nClosest; i++) {
+    int totalElements = imgPtr->image.cols * imgPtr->image.rows;
+    for (int i = 0; counted < nClosest && i < totalElements; i++) {
 	// Perhaps these if statements could be improved. I think branch
 	// prediction mitigates most of the possible slowdown if done like this.
 	if (!ignoreZeros){ // if counting zeros, just add all values
@@ -289,11 +286,10 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
 	}
     }
     
-    ROS_INFO("Means computed");
     cv::imshow("BlobImage", blobMat);
-    ROS_INFO("blob shown");
+    cv::circle(imgPtr->image, cv::Point(xSum/nClosest, ySum/nClosest),
+	       15, CV_RGB(255,255,255));
     cv::imshow("DepthImage", imgPtr->image);
-    ROS_INFO("depth shown");
     cv::waitKey(3);
 
     return DepthPoint<float>(xSum/nClosest, ySum/nClosest, depthSum/nClosest);
@@ -308,16 +304,11 @@ void ClosestPixelDetectorNode::update() {
     }
         
     //convert image to openCV image
-    ROS_INFO("Converting image");
     cv_bridge::CvImagePtr cv_ptr = convertImage();
     
-    ROS_INFO("Image to range");
     cv_ptr = convertImageToRange(cv_ptr);
-    ROS_INFO("Nthelement detection");
-    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 1000, true);
-    ROS_INFO("Printing mean");
+    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 100000, true);
     std::cout << closestPixelsMean << std::endl;
-    ROS_INFO("Printed mean");
     // normalize image, remove max values. Doing this normalisation results in the
     // smallest distances being found in places where there is no actual data
     // (i.e. on the borders of the image, in the regions where there is no data
