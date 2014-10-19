@@ -14,7 +14,7 @@
 
 using namespace cv;
 
-class BlobDetectorNode {
+class ClosestPixelDetectorNode {
 public:
     ros::Subscriber depth_subscriber;
     ros::Publisher blob_publisher;
@@ -22,12 +22,9 @@ public:
     void depthCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
     cv_bridge::CvImagePtr normalize(cv_bridge::CvImagePtr cv_ptr);
-    vector<KeyPoint> detectBlobs(cv_bridge::CvImagePtr cv_ptr);
-    KeyPoint getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvImagePtr cv_ptr);
     KeyPoint naiveDetection(cv_bridge::CvImagePtr cv_ptr, int num_closest_pixels);
     void update();
-    BlobDetectorNode(int argc, char* argv[]);
-
+    ClosestPixelDetectorNode(int argc, char* argv[]);
 private:
     ros::Time t_depth;
     sensor_msgs::Image::ConstPtr img;
@@ -39,4 +36,3 @@ private:
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
 };
-

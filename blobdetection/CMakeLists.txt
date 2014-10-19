@@ -15,6 +15,9 @@ catkin_package(
 )
 
 
-add_executable(blobDetector src/blobdetector.cpp)
+add_executable(blobDetector src/blobDetector.cpp)
 target_link_libraries(blobDetector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(blobDetector ${catkin_EXPORTED_TARGETS})
+add_executable(pixelDetector src/closestPixelDetector.cpp)
+target_link_libraries(pixelDetector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(pixelDetector ${catkin_EXPORTED_TARGETS})
