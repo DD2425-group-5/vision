@@ -390,8 +390,21 @@ ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
     t_depth = ros::Time::now();
     cv::namedWindow("BlobImage");
     cv::namedWindow("DepthImage");
-    depth_subscriber = handle.subscribe("/camera/depth/image_raw", 1, &ClosestPixelDetectorNode::depthCallback, this);
-    depth_point_publisher = handle.advertise<blobdetection::depth_point>("/vision/closest_blob", 1);
+
+    std::string camera_sub_topic;
+    if (!handle.getParam("/topic_list/robot_topics/published/depth_topic", camera_sub_topic)){
+	ROS_ERROR("/topic_list/robot_topics/published/depth_topic is not defined!");
+	std::exit(1);
+    }
+
+    std::string blob_pub_topic;
+    if (!handle.getParam("/topic_list/test", blob_pub_topic)){
+    	ROS_ERROR("/topic_list/vision_topics/pixel_detect/published/blob is not defined!");
+    	std::exit(1);
+    }
+
+    depth_subscriber = handle.subscribe(camera_sub_topic, 1, &ClosestPixelDetectorNode::depthCallback, this);
+    depth_point_publisher = handle.advertise<blobdetection::depth_point>(blob_pub_topic, 1);
     return handle;
 }
     
