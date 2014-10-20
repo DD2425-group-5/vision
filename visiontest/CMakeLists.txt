@@ -6,6 +6,9 @@ project(visiontest)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  sensor_msgs
+  image_transport
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
@@ -163,3 +166,7 @@ include_directories(
 add_executable(formattester src/formattester.cpp)
 target_link_libraries(formattester ${catkin_LIBRARIES})
 add_dependencies(formattester ${catkin_EXPORTED_TARGETS})
+
+add_executable(hist src/depthhistogram.cpp)
+target_link_libraries(hist ${catkin_LIBRARIES})
+add_dependencies(hist ${catkin_EXPORTED_TARGETS})

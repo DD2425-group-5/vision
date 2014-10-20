@@ -9,6 +9,8 @@
 #include <opencv/highgui.h>
 #include <iostream>
 #include <limits>
+#include <vector>
+#include <cmath>
 
 using namespace cv;
 

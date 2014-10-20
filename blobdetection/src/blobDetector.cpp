@@ -1,4 +1,4 @@
-#include "blobdetector.hpp"
+#include "blobDetector.hpp"
 
 void BlobDetectorNode::depthCallback(const sensor_msgs::Image::ConstPtr &msg) {
     t_depth = ros::Time::now();
@@ -34,7 +34,6 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
     }
 
     maxval = max;
-
     //ROS_INFO_STREAM("Min: " << min << ", Max: " << max << ", Count: " << count);
 
     /**
@@ -42,6 +41,7 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
      * happens Need to put values into the range 0-255, otherwise the conversion
      * afterwards will not have the desired result.
      */
+    
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
 	for(int j = 0; j < cv_ptr->image.cols; ++j) {
 	    cv_ptr->image.at<float>(i,j) =  (cv_ptr->image.at<float>(i,j) / max)*255;
@@ -60,7 +60,7 @@ cv_bridge::CvImagePtr BlobDetectorNode::convertImage() {
 }
     
 cv_bridge::CvImagePtr BlobDetectorNode::normalize(cv_bridge::CvImagePtr cv_ptr) {
-    return cv_ptr; //TODO
+    return cv_ptr;
 }
     
 /*Detect blobs from the stored image*/
@@ -112,15 +112,13 @@ KeyPoint BlobDetectorNode::getClosestBlob(vector<KeyPoint> blobs, cv_bridge::CvI
 
     cv::circle(cv_ptr->image, cv::Point(blobs[minindex].pt.x, blobs[minindex].pt.y),
 	       blobs[minindex].size/2, CV_RGB(255,255,255));
-    cv::imshow("windowname",cv_ptr->image);
+    cv::imshow("DepthImage",cv_ptr->image);
     cv::waitKey(3);
 
     kp.pt.x = blobs[minindex].pt.x;
     kp.pt.y = min;
     return kp;
 }
-    
-
 void BlobDetectorNode::update() {
     // if more than 2 seconds have passed and no messages have been received,
     // stop sending
@@ -131,14 +129,14 @@ void BlobDetectorNode::update() {
     //convert image to openCV image
     cv_bridge::CvImagePtr cv_ptr = convertImage();
     //normalize image, remove max values
-    cv_ptr = normalize(cv_ptr);
+    //    cv_ptr = normalize(cv_ptr);
     //if(1) return;
 
     //detect blobs in image
     vector<KeyPoint> points = detectBlobs(cv_ptr);
     //pick the closest blob
     KeyPoint kp = getClosestBlob(points,cv_ptr);
-
+    
     ROS_INFO_STREAM("x cor: " << kp.pt.x << " distance: " << kp.pt.y);
 
     // calculate kinematics and send twist to robot simulation node
@@ -160,7 +158,7 @@ ros::NodeHandle BlobDetectorNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "blobDetector");
     ros::NodeHandle handle;
     t_depth = ros::Time::now();
-    cv::namedWindow("windowname");
+    cv::namedWindow("DepthImage");
     depth_subscriber = handle.subscribe("/camera/depth/image_raw", 1, &BlobDetectorNode::depthCallback, this);
     blob_publisher = handle.advertise<geometry_msgs::Twist>("/vision/blobdetection", 1);
     return handle;
