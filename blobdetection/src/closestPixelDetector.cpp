@@ -93,7 +93,7 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
     
     for (int i = 0; i < imgPtr->image.rows; ++i) {
 	for(int j = 0; j < imgPtr->image.cols; ++j) {
-	    imgPtr->image.at<float>(i,j) =  imgPtr->image.at<float>(i,j) / max;
+        imgPtr->image.at<float>(i,j) = ( imgPtr->image.at<float>(i,j) / maxval)*255.0f;
 	}
     }
 
@@ -101,9 +101,9 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
      * Need to convert to CV_8UC1, otherwise the SimpleBlobDetector doesn't work, 
      * crashes at either the thresholding or contour stage.
      */
-//    Mat m(imgPtr->image.rows,imgPtr->image.cols,CV_8UC1);
-//    imgPtr->image.convertTo(m,CV_8UC1);
-//    imgPtr->image = m;
+    Mat m(imgPtr->image.rows,imgPtr->image.cols,CV_8UC1);
+    imgPtr->image.convertTo(m,CV_8UC1);
+    imgPtr->image = m;
 
     
     return imgPtr;
@@ -116,16 +116,18 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
  * row is inserted into y, column into x.
  */
 template <typename T>
-std::vector< ClosestPixelDetectorNode::DepthPoint<T> > ClosestPixelDetectorNode::cvMatToVector(cv::Mat matrix) {
-    std::vector< ClosestPixelDetectorNode::DepthPoint<T> > flattened(matrix.cols * matrix.rows);
+std::vector< ClosestPixelDetectorNode::DepthPoint<T> > ClosestPixelDetectorNode::cvMatToVector(cv::Mat matrix,bool ignoreZeros) {
+    std::vector< ClosestPixelDetectorNode::DepthPoint<T> > flattened;
     
     // populate the flattened vector
     for (int row = 0; row < matrix.rows; row++) {
-	const T* rowptr = matrix.ptr<T>(row); // extract row of the matrix
-	// create depthpoints and insert them into the flattened vector.
-	for (int col = 0; col < matrix.cols; col++) {
-	    flattened[row * matrix.cols + col] = ClosestPixelDetectorNode::DepthPoint<T>(col, row, rowptr[col]);
-	}
+        const T* rowptr = matrix.ptr<T>(row); // extract row of the matrix
+        // create depthpoints and insert them into the flattened vector.
+        for (int col = 0; col < matrix.cols; col++) {
+            if(ignoreZeros && rowptr[col] <= 1e-10)
+                continue;
+            flattened.push_back(ClosestPixelDetectorNode::DepthPoint<T>(col, row, rowptr[col]));
+        }
     }
 
     return flattened;
@@ -155,7 +157,8 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
             KeyPoint minkp;
             int minindex = -1;
             for(int k = 0; k < closest_points.size(); ++k) {
-                if(cv_ptr->image.at<float>(i,j) < cv_ptr->image.at<float>(closest_points[k].pt.y,closest_points[k].pt.x)) {
+                if(cv_ptr->image.at<float>(i,j) < cv_ptr->image.at<float>(
+                            closest_points[k].pt.y,closest_points[k].pt.x)) {
                     minindex = k;
                     minkp.pt.y = i;
                     minkp.pt.x = j;
@@ -225,10 +228,11 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
  * and invalid points (assuming that all points with zero depth are invalid).
  * Otherwise, all points used in the computation will be valid.
  */
-ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetectionNthElement(cv_bridge::CvImagePtr imgPtr, int nClosest, bool ignoreZeros)
+ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetectionNthElement(
+        cv_bridge::CvImagePtr imgPtr, int nClosest, bool ignoreZeros)
 {
     // Flatten the image matrix into a vector so that it can be used in the next stage
-    std::vector< DepthPoint<float> > flat = cvMatToVector<float>(imgPtr->image);
+    std::vector< DepthPoint<float> > flat = cvMatToVector<float>(imgPtr->image,ignoreZeros);
 
     /**
      * Use nth_element to order the DepthPoints in the vector in such a way that
@@ -253,47 +257,55 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
     float depthSum = 0;
     int counted = 0;
     int totalElements = imgPtr->image.cols * imgPtr->image.rows;
-    for (int i = 0; counted < nClosest && i < totalElements; i++) {
-	// Perhaps these if statements could be improved. I think branch
-	// prediction mitigates most of the possible slowdown if done like this.
-	if (!ignoreZeros){ // if counting zeros, just add all values
-	    counted++;
-	    xSum += flat[i].x;
-	    ySum += flat[i].y;
-	    depthSum += flat[i].value;
-	    blobMat.at<int>(flat[i].y, flat[i].x) = 255;
-	} else {
-	    // need to exclude zeros and count nonzero values to get correct mean
-	    if (flat[i].value == 0) {
-                // Need to loop an additional time for each zero
-		continue;
-	    }
-	    counted++;
-	    xSum += flat[i].x;
-	    ySum += flat[i].y;
-	    depthSum += flat[i].value;
-	    blobMat.at<int>(flat[i].y, flat[i].x) = 255;
-	    // std::cout << " nonzero";
-	    // xSum += flat[i].x;
-	    // std::cout << " x added";
-	    // ySum += flat[i].y;
-	    // std::cout << " y added";
-	    // depthSum += flat[i].value;
-	    // std::cout << "depth added";
-	    // blobMat.at<int>(flat[i].y, flat[i].x) = 255;
-	    // std::cout << " mat updated" << std::endl;
+    for (int i = 0; i < nClosest; i++) {
+        // Perhaps these if statements could be improved. I think branch
+        // prediction mitigates most of the possible slowdown if done like this.
+        if (!ignoreZeros){ // if counting zeros, just add all values
+            counted++;
+            xSum += flat[i].x;
+            ySum += flat[i].y;
+            depthSum += flat[i].value;
+            blobMat.at<char>(flat[i].y, flat[i].x) = 255;
+        } else {
+            // need to exclude zeros and count nonzero values to get correct mean
+            if (flat[i].value <= 1e-10) {
+                    // Need to loop an additional time for each zero
+            continue;
+            }
+            counted++;
+            xSum += flat[i].x;
+            ySum += flat[i].y;
+            depthSum += flat[i].value;
+            blobMat.at<char>(flat[i].y, flat[i].x) = 255;
+            // std::cout << " nonzero";
+            // xSum += flat[i].x;
+            // std::cout << " x added";
+            // ySum += flat[i].y;
+            // std::cout << " y added";
+            // depthSum += flat[i].value;
+            // std::cout << "depth added";
+            // blobMat.at<int>(flat[i].y, flat[i].x) = 255;
+            // std::cout << " mat updated" << std::endl;
 
-	}
+        }
     }
-    
     cv::imshow("BlobImage", blobMat);
-    cv::circle(imgPtr->image, cv::Point(xSum/nClosest, ySum/nClosest),
-	       15, CV_RGB(255,255,255));
+
+    ROS_INFO("BEFORE RETURN");
+    ROS_INFO_STREAM("xSum = " << xSum << " ySum = " << ySum << " depthSum= " << depthSum
+                    << " counted = " << counted);
+    return DepthPoint<float>(xSum/counted, ySum/counted, depthSum/ (float)counted);
+}
+
+void ClosestPixelDetectorNode::drawFloatImg(cv_bridge::CvImagePtr imgPtr,DepthPoint<float> point) {
+    imgPtr = convertImageToRange(imgPtr);
+    cv::circle(imgPtr->image, cv::Point(point.x, point.y),
+           15, CV_RGB(255,255,255));
     cv::imshow("DepthImage", imgPtr->image);
     cv::waitKey(3);
-
-    return DepthPoint<float>(xSum/nClosest, ySum/nClosest, depthSum/nClosest);
 }
+
+
     
 
 void ClosestPixelDetectorNode::update() {
@@ -306,9 +318,20 @@ void ClosestPixelDetectorNode::update() {
     //convert image to openCV image
     cv_bridge::CvImagePtr cv_ptr = convertImage();
     
-    cv_ptr = convertImageToRange(cv_ptr);
-    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 100000, true);
+    //cv_ptr = normalize(cv_ptr);
+    //cv_ptr = convertImageToRange(cv_ptr);
+    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 5000, true);
+
     std::cout << closestPixelsMean << std::endl;
+
+    drawFloatImg(cv_ptr,closestPixelsMean);
+
+    blobdetection::depth_point dp_msg;
+    dp_msg.x = closestPixelsMean.x;
+    dp_msg.y = closestPixelsMean.y;
+    dp_msg.depth = closestPixelsMean.value;
+    depth_point_publisher.publish(dp_msg);
+
     // normalize image, remove max values. Doing this normalisation results in the
     // smallest distances being found in places where there is no actual data
     // (i.e. on the borders of the image, in the regions where there is no data
@@ -344,7 +367,7 @@ ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
     cv::namedWindow("BlobImage");
     cv::namedWindow("DepthImage");
     depth_subscriber = handle.subscribe("/camera/depth/image_raw", 1, &ClosestPixelDetectorNode::depthCallback, this);
-    blob_publisher = handle.advertise<geometry_msgs::Twist>("/vision/pixeldetection", 1);
+    depth_point_publisher = handle.advertise<blobdetection::depth_point>("/vision/closest_blob", 1);
     return handle;
 }
     

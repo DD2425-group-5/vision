@@ -12,6 +12,7 @@
 #include <utility>
 #include <algorithm>
 #include <iostream>
+#include <blobdetection/depth_point.h>
 
 using namespace cv;
 
@@ -48,7 +49,7 @@ public:
     };
 
     ros::Subscriber depth_subscriber;
-    ros::Publisher blob_publisher;
+    ros::Publisher depth_point_publisher;
 
     void depthCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
@@ -58,7 +59,8 @@ public:
     ClosestPixelDetectorNode(int argc, char* argv[]);
     cv_bridge::CvImagePtr convertImageToRange(cv_bridge::CvImagePtr imgPtr);
     DepthPoint<float> naiveDetectionNthElement(cv_bridge::CvImagePtr imgPtr, int nClosest, bool ignoreZeros);
-    template<typename U> std::vector< DepthPoint<U> > cvMatToVector(cv::Mat matrix);
+    template<typename U> std::vector< DepthPoint<U> > cvMatToVector(cv::Mat matrix,bool ignoreZeros);
+    void drawFloatImg(cv_bridge::CvImagePtr imgPtr, DepthPoint<float> point);
 
 private:
     ros::Time t_depth;
