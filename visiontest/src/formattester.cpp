@@ -9,6 +9,7 @@ void depthCallback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
     ROS_INFO("width,height: [%d,%d]", msg->width, msg->height);
     ROS_INFO("point_step: [%d]", msg->point_step);
     ROS_INFO("row_step: [%d]", msg->row_step);
+    //ROS_INFO("enc: [%d]", msg->encoding.c_str());
     ROS_INFO("FIELDs[]:");
     int i = 0;
     ROS_INFO("  name: %s", msg->fields[i].name.c_str());
@@ -43,8 +44,8 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
 
-  ros::Subscriber subd = n.subscribe("/camera/depth/points", 1000, depthCallback);
-  //ros::Subscriber subi = n.subscribe("/camera/rgb/image_raw", 1000, imageCallback);
+  //ros::Subscriber subd = n.subscribe("/camera/depth/image_rect", 1000, depthCallback);
+  ros::Subscriber subi = n.subscribe("/camera/depth/image_rect", 1000, imageCallback);
 
   ros::spin();
 

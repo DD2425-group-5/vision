@@ -14,7 +14,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-add_executable(imageConvertert src/imageConverter.cpp)
-target_link_libraries(imageConvertert ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(imageConvertert ${catkin_EXPORTED_TARGETS})
+add_executable(imageConverter src/imageConverter.cpp)
+target_link_libraries(imageConverter ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(imageConverter ${catkin_EXPORTED_TARGETS})
 
