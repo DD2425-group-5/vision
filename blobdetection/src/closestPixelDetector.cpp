@@ -289,11 +289,8 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
 
         }
     }
-    cv::imshow("BlobImage", blobMat);
-
-    ROS_INFO("BEFORE RETURN");
-    ROS_INFO_STREAM("xSum = " << xSum << " ySum = " << ySum << " depthSum= " << depthSum
-                    << " counted = " << counted);
+    if(drawImages)
+        cv::imshow("BlobImage", blobMat);
     return DepthPoint<float>(xSum/counted, ySum/counted, depthSum/ (float)counted);
 }
 
@@ -320,11 +317,13 @@ void ClosestPixelDetectorNode::update() {
     
     //cv_ptr = normalize(cv_ptr);
     //cv_ptr = convertImageToRange(cv_ptr);
-    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, 5000, true);
+    DepthPoint<float> closestPixelsMean = naiveDetectionNthElement(cv_ptr, numClosestPixels, true);
 
-    std::cout << closestPixelsMean << std::endl;
+    if(debugMessages)
+        std::cout << closestPixelsMean << std::endl;
 
-    drawFloatImg(cv_ptr,closestPixelsMean);
+    if(drawImages)
+        drawFloatImg(cv_ptr,closestPixelsMean);
 
     blobdetection::depth_point dp_msg;
     dp_msg.x = closestPixelsMean.x;
@@ -363,6 +362,23 @@ void ClosestPixelDetectorNode::update() {
 ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "closestPixelDetector");
     ros::NodeHandle handle;
+
+    if (!handle.getParam("/blobdetection/numClosestPixels", numClosestPixels)){
+        ROS_ERROR("/blobdetection/numClosestPixels is not defined!");
+        std::exit(1);
+    }
+
+    if (!handle.getParam("/blobdetection/drawImages", drawImages)){
+        ROS_ERROR("/blobdetection/drawImages is not defined!");
+        std::exit(1);
+    }
+
+    if (!handle.getParam("/blobdetection/debugMessages", debugMessages)){
+        ROS_ERROR("/blobdetection/debugMessages is not defined!");
+        std::exit(1);
+    }
+
+
     t_depth = ros::Time::now();
     cv::namedWindow("BlobImage");
     cv::namedWindow("DepthImage");

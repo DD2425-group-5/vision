@@ -70,6 +70,11 @@ private:
     float mean_img;
     float std_img;
 
+    //parameters
+    int numClosestPixels;
+    bool drawImages;
+    bool debugMessages;
+
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
 };
