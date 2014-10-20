@@ -234,6 +234,17 @@ ClosestPixelDetectorNode::DepthPoint<float> ClosestPixelDetectorNode::naiveDetec
     // Flatten the image matrix into a vector so that it can be used in the next stage
     std::vector< DepthPoint<float> > flat = cvMatToVector<float>(imgPtr->image,ignoreZeros);
 
+    if(flat.size() < nClosest) {
+        nClosest = flat.size();
+        if(nClosest == 0) {
+            DepthPoint<float> dp;
+            dp.x = 320;
+            dp.y = 240;
+            dp.value = 500;
+            return dp;
+        }
+    }
+
     /**
      * Use nth_element to order the DepthPoints in the vector in such a way that
      * the element at flat[nClosest] is the one that would be in that position
@@ -301,9 +312,6 @@ void ClosestPixelDetectorNode::drawFloatImg(cv_bridge::CvImagePtr imgPtr,DepthPo
     cv::imshow("DepthImage", imgPtr->image);
     cv::waitKey(3);
 }
-
-
-    
 
 void ClosestPixelDetectorNode::update() {
     // if more than 2 seconds have passed and no messages have been received,
