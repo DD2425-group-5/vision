@@ -20,7 +20,7 @@ public:
         // Subscrive to input video feed and publish output video feed
         image_sub_ = it_.subscribe("/camera/depth/image_raw", 1, &ImageConverter::imageCb, this);
         image_pub_ = it_.advertise("/image_converter/output_video", 1);
-
+	ROS_INFO("Started image converter.");
         cv::namedWindow(OPENCV_WINDOW);
     }
 
@@ -38,21 +38,34 @@ public:
             return;
         }
 
-        // Draw an example circle on the video stream
-        if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
-            cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
-/*
 	double min = std::numeric_limits<double>::max();
 	double max = std::numeric_limits<double>::min();
-	for (int i = 0; i < M.rows; i++)
+	int count = 0;
+	for (int i = 0; i < cv_ptr->image.rows; i++)
 	{
-	    const double* Mi = M.ptr<double>(i);
-	    for(int j = 0; j < M.cols; j++){
+	    const double* Mi = cv_ptr->image.ptr<double>(i);
+	    for(int j = 0; j < cv_ptr->image.cols; j++){
+		// if (j = 0){
+		//     ROS_INFO_STREAM("" << Mi[j]);
+		// }
+		// if (Mi[j] > 1e150){
+		//     count++;
+		//      cv_ptr->image.at<double>(i, j) = 0;
+		//      continue;
+		// }
 		
+		if (Mi[j] < min)
+		    min = Mi[j];
+		if (Mi[j] > max)
+		    max = Mi[j];
 	    }
 		
 	}
-*/
+
+	ROS_INFO_STREAM("Max is " << max);
+	ROS_INFO_STREAM("Min is " << min);
+	ROS_INFO_STREAM("Reject count " << count);
+
         // Update GUI Window
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
         cv::waitKey(3);
