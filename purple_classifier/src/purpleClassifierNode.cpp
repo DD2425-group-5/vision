@@ -18,20 +18,64 @@ cv_bridge::CvImagePtr PurpleClassifierNode::convertImage() {
     return cv_ptr;
 }
 
-cv_bridge::CvImagePtr discretizeImage(cv_bridge::CvImagePtr cv_ptr) {
-    cv::MatConstIterator<char> it;
-    cv::Mat& m = cv_ptr->image;
-    /*
-    for(it = m.begin();it != m.end();) {
-        int r = (int) *it;
-        r += 127;
-        ++it;
-        int g = (int) *it;
-        g += 127;
-        ++it;
-        int b = (int) *it;
-        b += 2;
-    }*/
+/**
+When reading uint8 values into a char, and then casting into int,
+the values will be between -128 and 127. But its not linear.
+Values 0-127 correspond to actual value 0-127. But then it continues
+to -128 and goes to -1. Basically:
+
+-128 -> 128
+-127 -> 129
+...
+-1 -> 255
+
+So for negative values, we want to add 256 to it.
+*/
+int PurpleClassifierNode::toRgbInt(int i)  {
+    if(i >= 0)
+        return i;
+
+    return i + 256;
+}
+
+cv_bridge::CvImagePtr PurpleClassifierNode::discretizeImage(cv_bridge::CvImagePtr cv_ptr) {
+    //cv_ptr->image.
+
+
+    cv::MatIterator_<cv::Vec3b> it;
+    //cv::Mat& m = cv_ptr->image;
+
+    for(it = cv_ptr->image.begin<cv::Vec3b>();it != cv_ptr->image.end<cv::Vec3b>();++it) {
+        int r = toRgbInt((int) it.ptr[0]);
+        int g = toRgbInt((int) it.ptr[1]);
+        int b = toRgbInt((int) it.ptr[2]);
+        //now r,g,b are ints between 0 and 255.
+        if(isPurple(r,g,b)) {
+            *it = purple_rgb;
+        } else {
+            *it = non_purple_rgb;
+        }
+
+    }
+
+    return cv_ptr;
+}
+
+/**
+Check if a pixel color is purple. Input should be ints between 0 and 255.
+The parameters are set to doubles because then the calculations will be more accurate.
+*/
+bool PurpleClassifierNode::isPurple(double r, double g, double b) {
+
+    double rg_ratio = r/g;
+    double rb_ratio = r/b;
+
+
+    if(rg_ratio < 2 || rg_ratio > 3 || rb_ratio < 1 || rb_ratio > 2)
+        return false;
+
+
+    return true;
 }
 
 void PurpleClassifierNode::update() {
@@ -44,15 +88,27 @@ void PurpleClassifierNode::update() {
 
     cv_ptr = discretizeImage(cv_ptr);
 
+    cv::imshow("purpleImage", cv_ptr->image);
+    cv::waitKey(3);
+
 }
 
 ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "PurpleClassifier");
     ros::NodeHandle handle;
 
+    purple_rgb.val[0] = 255;
+    purple_rgb.val[1] = 102;
+    purple_rgb.val[2] = 168;
+
+    non_purple_rgb[0] = 0;
+    non_purple_rgb[1] = 0;
+    non_purple_rgb[2] = 0;
+
+    cv::namedWindow("purpleImage");
 
     t_rgb = ros::Time::now();
-    rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &PurpleClassifierNode::depthCallback, this);
+    rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &PurpleClassifierNode::rgbCallback, this);
     classifier_publisher = handle.advertise<sensor_msgs::Image>("/vision/purple_classifier", 1);
     return handle;
 }
