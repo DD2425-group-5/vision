@@ -38,24 +38,23 @@ int PurpleClassifierNode::toRgbInt(int i)  {
     return i + 256;
 }
 
+
 cv_bridge::CvImagePtr PurpleClassifierNode::discretizeImage(cv_bridge::CvImagePtr cv_ptr) {
-    //cv_ptr->image.
+    purple_points.empty();
 
-
-    cv::MatIterator_<cv::Vec3b> it;
-    //cv::Mat& m = cv_ptr->image;
-
-    for(it = cv_ptr->image.begin<cv::Vec3b>();it != cv_ptr->image.end<cv::Vec3b>();++it) {
-        int r = toRgbInt((int) it.ptr[0]);
-        int g = toRgbInt((int) it.ptr[1]);
-        int b = toRgbInt((int) it.ptr[2]);
-        //now r,g,b are ints between 0 and 255.
-        if(isPurple(r,g,b)) {
-            *it = purple_rgb;
+    //iterate through the image, check all pixels if they are purple, and put the purple ones in
+    //the vector.
+    for (int i = 0; i < cv_ptr->image.rows; ++i) {
+    for (int j = 0; j < cv_ptr->image.cols; ++j) {
+        cv::Vec3b& tmp_vec = cv_ptr->image.at<cv::Vec3b>(i,j);
+        if(isPurple(tmp_vec[0],tmp_vec[1],tmp_vec[2])) {
+            purple_points.push_back(cv::Point_<int>(j,i));
+            tmp_vec = purple_rgb;
         } else {
-            *it = non_purple_rgb;
+            purple_points.push_back(cv::Point_<int>(j,i));
+            tmp_vec = non_purple_rgb;
         }
-
+    }
     }
 
     return cv_ptr;
@@ -66,6 +65,9 @@ Check if a pixel color is purple. Input should be ints between 0 and 255.
 The parameters are set to doubles because then the calculations will be more accurate.
 */
 bool PurpleClassifierNode::isPurple(double r, double g, double b) {
+
+    if(g <= 1e-6 || b <= 1e-6)
+        return false;
 
     double rg_ratio = r/g;
     double rb_ratio = r/b;

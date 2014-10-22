@@ -27,6 +27,7 @@ private:
     sensor_msgs::Image::ConstPtr img;
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
+    std::vector<cv::Point_<int> > purple_points;
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
