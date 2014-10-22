@@ -366,50 +366,7 @@ void ClosestPixelDetectorNode::update() {
     // blob_publisher.publish(twist_msg);
 }
 
-
-ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
-    ros::init(argc, argv, "closestPixelDetector");
-    ros::NodeHandle handle;
-
-    if (!handle.getParam("/blobdetection/numClosestPixels", numClosestPixels)){
-        ROS_ERROR("/blobdetection/numClosestPixels is not defined!");
-        std::exit(1);
-    }
-
-    if (!handle.getParam("/blobdetection/drawImages", drawImages)){
-        ROS_ERROR("/blobdetection/drawImages is not defined!");
-        std::exit(1);
-    }
-
-    if (!handle.getParam("/blobdetection/debugMessages", debugMessages)){
-        ROS_ERROR("/blobdetection/debugMessages is not defined!");
-        std::exit(1);
-    }
-
-
-    t_depth = ros::Time::now();
-    cv::namedWindow("BlobImage");
-    cv::namedWindow("DepthImage");
-
-    std::string camera_sub_topic;
-    if (!handle.getParam("/topic_list/robot_topics/published/depth_topic", camera_sub_topic)){
-	ROS_ERROR("/topic_list/robot_topics/published/depth_topic is not defined!");
-	std::exit(1);
-    }
-
-    std::string blob_pub_topic;
-    if (!handle.getParam("/topic_list/test", blob_pub_topic)){
-    	ROS_ERROR("/topic_list/vision_topics/pixel_detect/published/blob is not defined!");
-    	std::exit(1);
-    }
-
-    depth_subscriber = handle.subscribe(camera_sub_topic, 1, &ClosestPixelDetectorNode::depthCallback, this);
-    depth_point_publisher = handle.advertise<blobdetection::depth_point>(blob_pub_topic, 1);
-    return handle;
-}
-    
-	
-void ClosestPixelDetectorNode::runNode(ros::NodeHandle handle) {
+void ClosestPixelDetectorNode::runNode() {
     // Control @ 10 Hz
     double control_frequency = 10.0;
 
@@ -426,8 +383,25 @@ void ClosestPixelDetectorNode::runNode(ros::NodeHandle handle) {
 }
 
 ClosestPixelDetectorNode::ClosestPixelDetectorNode(int argc, char* argv[]) {
-    ros::NodeHandle handle = nodeSetup(argc, argv);
-    runNode(handle);
+    ros::init(argc, argv, "closestPixelDetector");
+    ros::NodeHandle handle;
+    
+    ROSUtil::getParam(handle, "/blobdetection/numClosestPixels", numClosestPixels);
+    ROSUtil::getParam(handle, "/blobdetection/drawImages", drawImages);
+    ROSUtil::getParam(handle, "/blobdetection/debugMessages", debugMessages);
+    t_depth = ros::Time::now();
+    cv::namedWindow("BlobImage");
+    cv::namedWindow("DepthImage");
+
+    std::string camera_sub_topic;
+    ROSUtil::getParam(handle, "/topic_list/robot_topics/published/depth_topic", camera_sub_topic);
+    std::string blob_pub_topic;
+    ROSUtil::getParam(handle, "/topic_list/vision_topics/pixel_detect/published/blob", camera_sub_topic);
+
+    depth_subscriber = handle.subscribe(camera_sub_topic, 1, &ClosestPixelDetectorNode::depthCallback, this);
+    depth_point_publisher = handle.advertise<blobdetection::depth_point>(blob_pub_topic, 1);
+
+    runNode();
 }
 
 int main(int argc, char* argv[])
