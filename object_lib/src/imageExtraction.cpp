@@ -1,5 +1,6 @@
 #include "imageExtraction.hpp"
 
+// Bad practice!
 using namespace cv;
 using namespace std;
 
@@ -35,7 +36,7 @@ void extractObjects(string inputDir, string outputDir) {
 	mkdir(outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
     }
 
-    vector<SysUtil::DirContents> dirsToProcess = getFilesToProcess(inputDir);
+    vector<SysUtil::DirContents> dirsToProcess = SysUtil::getDirContents(inputDir);
 
     // Go over each directory
     for (int dirNum = 0; dirNum < dirsToProcess.size(); dirNum++) {
@@ -94,16 +95,14 @@ bool contourSort(vector<Point> c1, vector<Point> c2) {
 // }
 
 Mat threshContour(string fileName) {
-    Mat im;
-    
-    im = imread(fileName, CV_LOAD_IMAGE_COLOR);
+    Mat im = imread(fileName, CV_LOAD_IMAGE_COLOR);
 
     if (!im.data) {
 	ROS_INFO("Could not load image %s", fileName.c_str());
     }
     
-    Mat img;
-    resize(im, img, Size(), 0.2, 0.2);
+    Mat img = im;
+//    resize(im, img, Size(), 1, 1);
     Mat gray;
     cvtColor(img, gray, CV_RGB2GRAY);
 
@@ -143,30 +142,6 @@ Mat threshContour(string fileName) {
     img.copyTo(extracted, drawing);
 
     return extracted;
-}
-
-vector<SysUtil::DirContents> getFilesToProcess(string dirName) {
-    vector<SysUtil::DirContents> dirs;
-
-    SysUtil::DirContents top = SysUtil::listDir(dirName);
-    
-    if (top.dirs.size() == 0) {
-	// If there are no directories, assume you want to process files in the
-	// directory
-	top.path = "";
-	dirs.push_back(top);
-    } else {
-	// Otherwise, assume that the maximum depth of the directory structure
-	// is 1, and extract the file names out of the directories below the one
-	// passed as a parameter.
-	for (int dir = 0; dir < top.dirs.size(); dir++){
-	    SysUtil::DirContents sub = SysUtil::listDir(top.dirs[dir]);
-	    if (sub.files.size() != 0) {
-		dirs.push_back(sub);
-	    }
-	}
-    }
-    return dirs;
 }
 
 int main(int argc, char *argv[]) {
