@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <iostream>
 #include <blobdetection/depth_point.h>
-#include <rosutil.hpp>
+#include <rosutil/rosutil.hpp>
 
 using namespace cv;
 

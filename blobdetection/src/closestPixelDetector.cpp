@@ -71,7 +71,6 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
      */
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
-    int count = 0;
     for (int i = 0; i < imgPtr->image.rows; i++) {
 	const float* Mi = imgPtr->image.ptr<float>(i);
 	for(int j = 0; j < imgPtr->image.cols; j++){
@@ -156,7 +155,7 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
             //find the point furthest away and replace it with this one.
             KeyPoint minkp;
             int minindex = -1;
-            for(int k = 0; k < closest_points.size(); ++k) {
+            for(size_t k = 0; k < closest_points.size(); ++k) {
                 if(cv_ptr->image.at<float>(i,j) < cv_ptr->image.at<float>(
                             closest_points[k].pt.y,closest_points[k].pt.x)) {
                     minindex = k;
@@ -191,7 +190,7 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
     cv::Mat m = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC1);
 
     //do not calculate average y, we don't need that.    
-    for(int i = 0; i < closest_points.size(); ++i) {
+    for(size_t i = 0; i < closest_points.size(); ++i) {
 	float y = closest_points[i].pt.y;
 	float x = closest_points[i].pt.x;
 	//std::cout << i << ": (" << x << ", " << y << ")" << std::endl;
