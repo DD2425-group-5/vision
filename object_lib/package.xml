@@ -9,10 +9,13 @@
   <author email="michalst@kth.se">Michal Staniaszek</author>
   
   <buildtool_depend>catkin</buildtool_depend>
-  <buildtool_depend>roscpp</buildtool_depend>
+  <build_depend>roscpp</build_depend>
   <run_depend>roscpp</run_depend>
-  <buildtool_depend>opencv2</buildtool_depend>
+  <build_depend>opencv2</build_depend>
   <run_depend>opencv2</run_depend>  
+  <build_depend>sysutil</build_depend>
+  <run_depend>sysutil</run_depend>  
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_lib)
 
-find_package(catkin REQUIRED COMPONENTS roscpp)
+find_package(catkin REQUIRED COMPONENTS roscpp sysutil)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
@@ -11,6 +11,8 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+include_directories(${catkin_INCLUDE_DIRS})
+
 add_executable(image_extractor src/imageExtraction.cpp)
-target_link_libraries(image_extractor ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(image_extractor ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sysutil)
 add_dependencies(image_extractor ${catkin_EXPORTED_TARGETS})

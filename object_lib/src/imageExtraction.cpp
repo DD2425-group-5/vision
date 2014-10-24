@@ -10,12 +10,12 @@ using namespace std;
  * the original locations preserved.
  */
 void extractObjects(string inputDir, string outputDir) {
-    if (!isDir(inputDir)) {
+    if (!SysUtil::isDir(inputDir)) {
 	ROS_INFO("Input directory %s is not a directory.", inputDir.c_str());
 	exit(1);
     }
 
-    if (isDir(outputDir)) {
+    if (SysUtil::isDir(outputDir)) {
 	ROS_INFO("%s already exists. Write to this directory? (y/n)", outputDir.c_str());
 	string reply;
 	bool done = false;
@@ -35,11 +35,11 @@ void extractObjects(string inputDir, string outputDir) {
 	mkdir(outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
     }
 
-    vector<DirContents> dirsToProcess = getFilesToProcess(inputDir);
+    vector<SysUtil::DirContents> dirsToProcess = getFilesToProcess(inputDir);
 
     // Go over each directory
     for (int dirNum = 0; dirNum < dirsToProcess.size(); dirNum++) {
-	DirContents currentDir = dirsToProcess[dirNum];
+	SysUtil::DirContents currentDir = dirsToProcess[dirNum];
 	string dir = currentDir.path;
 	string outputPath = dir;
 
@@ -48,11 +48,11 @@ void extractObjects(string inputDir, string outputDir) {
 	if (outputPath.compare("") != 0) {
 	    outputPath.replace(0, inputDir.size(), outputDir);
 	} else {
-	    outputPath.replace(0, inputDir.size(), outputDir + removeBaseName(inputDir));
+	    outputPath.replace(0, inputDir.size(), outputDir + SysUtil::removeBaseName(inputDir));
 	    dir = inputDir;
 	}
 	std::cout << outputPath << std::endl;
-	if (!isDir(outputPath)) {
+	if (!SysUtil::isDir(outputPath)) {
 	    cout << "Creating directory " << outputPath << endl;
 	    mkdir(outputPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	}
@@ -66,7 +66,7 @@ void extractObjects(string inputDir, string outputDir) {
 	    string fileName = currentDir.files[fileNum];
 	    // Replace the input directory with the output directory in the filename
 	    Mat extract = threshContour(fileName);
-	    imwrite(insertSuffix(outputPath + removeBaseName(fileName), "_object"), extract);
+	    imwrite(SysUtil::insertSuffix(outputPath + SysUtil::removeBaseName(fileName), "_object"), extract);
 	    // \r at the beginning of the line returns to the beginning, using
 	    // flush at the end insted of endl allows overwriting the stuff
 	    // written on the current line. Do this to prevent lots of lines of
@@ -145,10 +145,10 @@ Mat threshContour(string fileName) {
     return extracted;
 }
 
-vector<DirContents> getFilesToProcess(string dirName) {
-    vector<DirContents> dirs;
+vector<SysUtil::DirContents> getFilesToProcess(string dirName) {
+    vector<SysUtil::DirContents> dirs;
 
-    DirContents top = listDir(dirName);
+    SysUtil::DirContents top = SysUtil::listDir(dirName);
     
     if (top.dirs.size() == 0) {
 	// If there are no directories, assume you want to process files in the
@@ -160,7 +160,7 @@ vector<DirContents> getFilesToProcess(string dirName) {
 	// is 1, and extract the file names out of the directories below the one
 	// passed as a parameter.
 	for (int dir = 0; dir < top.dirs.size(); dir++){
-	    DirContents sub = listDir(top.dirs[dir]);
+	    SysUtil::DirContents sub = SysUtil::listDir(top.dirs[dir]);
 	    if (sub.files.size() != 0) {
 		dirs.push_back(sub);
 	    }
