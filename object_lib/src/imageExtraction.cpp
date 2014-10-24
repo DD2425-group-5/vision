@@ -35,15 +35,13 @@ void extractObjects(string inputDir, string outputDir) {
 	mkdir(outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
     }
 
-    map<string, vector<string> > dirMap = getFilesToProcess(inputDir);
-    
-    map<string, vector<string> >::iterator mapIterator;
-    vector<string>::iterator fileIterator;
+    vector<DirContents> dirsToProcess = getFilesToProcess(inputDir);
+
     // Go over each directory
-    for (mapIterator = dirMap.begin(); mapIterator != dirMap.end(); ++mapIterator) {
-	string dir = mapIterator->first;
+    for (int dirNum = 0; dirNum < dirsToProcess.size(); dirNum++) {
+	DirContents currentDir = dirsToProcess[dirNum];
+	string dir = currentDir.path;
 	string outputPath = dir;
-	vector<string> files = mapIterator->second;
 
 	// make the directory into which the files will be placed, opencv
 	// doesn't create directories. Remove the final slash from the output
@@ -60,21 +58,22 @@ void extractObjects(string inputDir, string outputDir) {
 	}
 	cout << "Processing directory " << dir << "..." << endl;
 	// For each file in the current directory
-	for (fileIterator = files.begin(); fileIterator != files.end(); ++fileIterator){
+	for (int fileNum = 0; fileNum < currentDir.files.size(); fileNum++) {
 	    // Extract the blob and then write it to the output directory,
 	    // preserving its original path below the input directory.
 	    // cout << "Processing " << *fileIterator << endl;
 	    // cout << "Will output to " << insertSuffix(outputPath + removeBaseName(*fileIterator), "_object") << endl;
+	    string fileName = currentDir.files[fileNum];
 	    // Replace the input directory with the output directory in the filename
-	    Mat extract = threshContour(*fileIterator);
-	    imwrite(insertSuffix(outputPath + removeBaseName(*fileIterator), "_object"), extract);
+	    Mat extract = threshContour(fileName);
+	    imwrite(insertSuffix(outputPath + removeBaseName(fileName), "_object"), extract);
 	    // \r at the beginning of the line returns to the beginning, using
 	    // flush at the end insted of endl allows overwriting the stuff
 	    // written on the current line. Do this to prevent lots of lines of
 	    // output.
-	    cout << "\rProcessed " << fileIterator - files.begin() + 1
-	    	      << " of " << files.end() - files.begin() 
-	    	      << " images." << flush;
+	    cout << "\rProcessed " << fileNum + 1
+		 << " of " << currentDir.files.size()
+		 << " images." << flush;
 	}
 	cout << endl;
     }
@@ -146,17 +145,16 @@ Mat threshContour(string fileName) {
     return extracted;
 }
 
-map<string, vector<string> > getFilesToProcess(string dirName) {
-    map<string, vector<string> > dirFileMap;
+vector<DirContents> getFilesToProcess(string dirName) {
+    vector<DirContents> dirs;
 
     DirContents top = listDir(dirName);
     
     if (top.dirs.size() == 0) {
 	// If there are no directories, assume you want to process files in the
 	// directory
-	for (int i = 0; i < top.files.size(); i++){
-	    dirFileMap.insert(pair<string, vector<string> >("", top.files));
-	}
+	top.path = "";
+	dirs.push_back(top);
     } else {
 	// Otherwise, assume that the maximum depth of the directory structure
 	// is 1, and extract the file names out of the directories below the one
@@ -164,11 +162,11 @@ map<string, vector<string> > getFilesToProcess(string dirName) {
 	for (int dir = 0; dir < top.dirs.size(); dir++){
 	    DirContents sub = listDir(top.dirs[dir]);
 	    if (sub.files.size() != 0) {
-		dirFileMap.insert(pair<string, vector<string> >(top.dirs[dir], sub.files));
+		dirs.push_back(sub);
 	    }
 	}
     }
-    return dirFileMap;
+    return dirs;
 }
 
 int main(int argc, char *argv[]) {

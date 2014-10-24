@@ -110,5 +110,5 @@ DirContents listDir(std::string path) {
 void extractObjects(std::string inputDir, std::string outputDir);
 bool contourSort(std::vector<cv::Point> c1, std::vector<cv::Point> c2);
 cv::Mat threshContour(std::string fileName);
-std::map<std::string, std::vector<std::string> > getFilesToProcess(std::string dirName);
+std::vector<DirContents> getFilesToProcess(std::string dirName);
 std::string insertSuffix(std::string fileName, std::string suffix);
