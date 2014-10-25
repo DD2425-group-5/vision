@@ -18,5 +18,5 @@ target_link_libraries(image_extractor ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sy
 add_dependencies(image_extractor ${catkin_EXPORTED_TARGETS})
 
 add_executable(model_learner src/modelLearner.cpp)
-target_link_libraries(model_learner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} mathutil)
+target_link_libraries(model_learner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} mathutil yaml-cpp)
 add_dependencies(model_learner ${catkin_EXPORTED_TARGETS})

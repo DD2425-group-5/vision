@@ -145,5 +145,9 @@ Mat threshContour(string fileName) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc < 3) {
+	cout << "Please provide an directory to process, and a directory "\
+	    "into which to output processed images." << endl;
+    }
     extractObjects(argv[1], argv[2]);
 }
