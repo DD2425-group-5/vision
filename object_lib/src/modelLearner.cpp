@@ -5,7 +5,6 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv/highgui.h>
 #include <sysutil/sysutil.hpp>
-#include <mathutil/math.hpp>
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
@@ -33,17 +32,17 @@ void modelsToYAML(map<string, pair<Scalar,Scalar> > modelMap){
 	out << Key << name.c_str();
     	out << Value;
     	out << BeginMap;
-    	out << Key << "mu_r";
+    	out << Key << "mu_b";
     	out << Value << model.first.val[0];
     	out << Key << "mu_g";
     	out << Value << model.first.val[1];
-    	out << Key << "mu_b";
+    	out << Key << "mu_r";
     	out << Value << model.first.val[2];
-    	out << Key << "std_r";
+    	out << Key << "std_b";
     	out << Value << model.second.val[0];
     	out << Key << "std_g";
     	out << Value << model.second.val[1];
-    	out << Key << "std_b";
+    	out << Key << "std_r";
     	out << Value << model.second.val[2];
     	out << EndMap;
     }

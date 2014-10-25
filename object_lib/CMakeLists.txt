@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_lib)
 
-find_package(catkin REQUIRED COMPONENTS roscpp sysutil mathutil)
+find_package(catkin REQUIRED COMPONENTS roscpp rosutil sysutil)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
@@ -22,5 +22,6 @@ target_link_libraries(model_learner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sysu
 add_dependencies(model_learner ${catkin_EXPORTED_TARGETS})
 
 add_executable(object_classifier src/objectClassifier.cpp)
-target_link_libraries(object_classifier ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(object_classifier ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+sysutil rosutil)
 add_dependencies(object_classifier ${catkin_EXPORTED_TARGETS})
