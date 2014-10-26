@@ -5,10 +5,13 @@
 #include <opencv/highgui.h>
 #include <string>
 #include <rosutil/rosutil.hpp>
+#include <sysutil/sysutil.hpp>
+#include <cmath>
 
 using namespace cv;
 using std::string;
 using std::cout;
+using std::endl;
 using std::vector;
 using ROSUtil::getParam;
 
@@ -17,7 +20,7 @@ using namespace cv;
 class ModelParams {
 public:
     ModelParams(){};
-    ModelParams(string name, double mu_r, double mu_g, double mu_b, double std_r, double std_g, double std_b) {
+    ModelParams(string name, float mu_r, float mu_g, float mu_b, float std_r, float std_g, float std_b) {
 	modelName = name;
 	mu_b = mu_b;
 	mu_g = mu_g;
@@ -27,18 +30,79 @@ public:
 	std_r = std_r;
     }
     string modelName;
-    double mu_b;
-    double mu_g;
-    double mu_r;
-    double std_b;
-    double std_g;
-    double std_r;
+    float mu_b;
+    float mu_g;
+    float mu_r;
+    float std_b;
+    float std_g;
+    float std_r;
 };
 
-void classifyImages(string dirName) {
-    Mat test;
-    
+
+
+
+float gauss(float x, float mu, float sigma)
+{
+    return pow(x - mu, 2)/(2*pow(sigma,2));
 }
+
+/**
+ * class_prob = log(prior) - sum(log(sigmas)) - sum(((x-mu)^2)/2sigma^2)
+ */
+float discriminant(float b, float g, float r, float prior, ModelParams model)
+{
+    float sigmasum = log(model.std_b) + log(model.std_g) + log(model.std_r);
+    float musum = gauss(b, model.mu_b, model.std_b)
+	+ gauss(g, model.mu_g, model.std_g)
+	+ gauss(r, model.mu_r, model.std_r);
+    
+    float res = log(prior) - sigmasum - musum;
+    return res;
+}
+
+void classifyImages(SysUtil::DirContents dir, ModelParams model) {
+    Mat im;
+    for (size_t i = 0; i < dir.files.size(); i++) {
+	cout << dir.files[i] << endl;
+	im = imread(dir.files[i], CV_LOAD_IMAGE_COLOR);
+	
+	// Probably very inefficient. Lots of splitting and stuff
+	// Use a LUT for the gaussian computations on the model. Only 
+	// 255 possible values exist for the discriminant for any given model.
+	resize(im, im, Size(), 0.2, 0.2);
+	Mat c = Mat::zeros(im.rows, im.cols, CV_32F);
+	
+	for (int row = 0; row < im.rows; row++) {
+	    for (int col = 0; col < im.cols; col++) {
+		Vec3b pixel = im.at<Vec3b>(row, col);
+		c.at<float>(row, col) = discriminant(pixel.val[0], pixel.val[1], pixel.val[2], 0.5, model);
+	    }
+	}
+
+	double max, min;
+	minMaxIdx(c, &min, &max);
+	float minm = min - min;
+	float maxm = max - min;
+	Mat gray = Mat::zeros(c.rows, c.cols, CV_32F);
+	cout << minm << ", " << maxm << endl;
+	cout << c.rows << ", " << c.cols << endl;
+	for (int row = 0; row < gray.rows; row++) {
+	    for (int col = 0; col < gray.cols; col++) {
+		gray.at<float>(row, col) = (((c.at<float>(row, col) - min)/maxm));
+	    }
+	}
+
+	minMaxIdx(gray, &min, &max);
+
+	cout << "Min value: " << min << ", max value: " << max << endl;
+	namedWindow("class", CV_WINDOW_AUTOSIZE);
+	imshow("class", gray);
+	waitKey(0);
+    }
+}
+
+
+
 
 ModelParams readModel(string modelName, ros::NodeHandle n) {
     ModelParams model;
@@ -68,7 +132,11 @@ int main(int argc, char *argv[]) {
 	models.push_back(readModel(*it, n));
     }
 
-    classifyImages(argv[1]);
+    vector<SysUtil::DirContents> dirsToProcess = SysUtil::getDirContents(argv[1]);
+    for (size_t i = 0; i < dirsToProcess.size(); i++) {
+	cout << dirsToProcess[i].path << endl;
+	classifyImages(dirsToProcess[i], models[0]);
+    }
 
     return 0;
 }
