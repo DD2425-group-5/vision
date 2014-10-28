@@ -14,7 +14,6 @@ using std::cout;
 using std::endl;
 using std::vector;
 using ROSUtil::getParam;
-
 using namespace cv;
 
 class ModelParams {
@@ -39,7 +38,7 @@ public:
 };
 
 
-
+ModelParams backgroundModel;
 
 float gauss(float x, float mu, float sigma)
 {
@@ -101,18 +100,15 @@ void classifyImages(SysUtil::DirContents dir, ModelParams model) {
     }
 }
 
-
-
-
 ModelParams readModel(string modelName, ros::NodeHandle n) {
     ModelParams model;
     model.modelName = modelName;
-    getParam(n, "/object_models/" + modelName + "/mu_b", model.mu_b);
-    getParam(n, "/object_models/" + modelName + "/mu_g", model.mu_g);
-    getParam(n, "/object_models/" + modelName + "/mu_r", model.mu_r);
-    getParam(n, "/object_models/" + modelName + "/std_b", model.std_b);
-    getParam(n, "/object_models/" + modelName + "/std_g", model.std_g);
-    getParam(n, "/object_models/" + modelName + "/std_r", model.std_r);
+    getParam(n, "/models/" + modelName + "/mu_b", model.mu_b);
+    getParam(n, "/models/" + modelName + "/mu_g", model.mu_g);
+    getParam(n, "/models/" + modelName + "/mu_r", model.mu_r);
+    getParam(n, "/models/" + modelName + "/std_b", model.std_b);
+    getParam(n, "/models/" + modelName + "/std_g", model.std_g);
+    getParam(n, "/models/" + modelName + "/std_r", model.std_r);
     return model;
 }
 
@@ -127,8 +123,13 @@ int main(int argc, char *argv[]) {
     
     vector<ModelParams> models;
     vector<string> names;
-    getParam(n, "/object_models/model_names", names);
+    getParam(n, "/models/model_names", names);
     for (vector<string>::iterator it = names.begin(); it != names.end(); it++) {
+	// want to separate out the background model and object models
+	if ((*it).compare("background")){
+	    backgroundModel = readModel(*it, n);
+	    continue;
+	}
 	models.push_back(readModel(*it, n));
     }
 
