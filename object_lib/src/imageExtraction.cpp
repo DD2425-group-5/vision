@@ -16,50 +16,49 @@ void extractObjects(string inputDir, string outputDir) {
 	exit(1);
     }
 
-    if (SysUtil::isDir(outputDir)) {
-	ROS_INFO("%s already exists. Write to this directory? (y/n)", outputDir.c_str());
-	string reply;
-	bool done = false;
-	while (!done) {
-	    cin >> reply;
-	    if (reply.compare("y") == 0 || reply.compare("Y") == 0) {
-		done = true;
-	    } else if (reply.compare("n") == 0 || reply.compare("N") == 0) {
-		ROS_INFO("OK, exiting.");
-		exit(0);
-	    } else {
-		ROS_INFO("Please reply with y or n.");
-	    }
+    if (SysUtil::isDir(outputDir)){
+	if (SysUtil::queryUserYN(string(outputDir + " already exists. Write to it anyway? (y/n)"))){
+	    cout << "Extracted objects will be written to directories in " << outputDir << endl;
+	} else {
+	    cout << "OK, exiting." << endl;
+	    std::exit(0);
 	}
     } else {
-	ROS_INFO("%s is not a directory. Creating.", outputDir.c_str());
+	cout << string(outputDir + " is not a directory. Creating.") << endl;
 	mkdir(outputDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
     }
-
+    
     vector<SysUtil::DirContents> dirsToProcess = SysUtil::getDirContents(inputDir);
 
     // Go over each directory
-    for (int dirNum = 0; dirNum < dirsToProcess.size(); dirNum++) {
+    for (size_t dirNum = 0; dirNum < dirsToProcess.size(); dirNum++) {
 	SysUtil::DirContents currentDir = dirsToProcess[dirNum];
-	string dir = currentDir.path;
-	string outputPath = dir;
+	cout << "Processing directory " << currentDir.path << "..." << endl;
 
+	string outputPath = SysUtil::fullDirPath(outputDir);
+	// the directory being processed had no subdirs, so need to add its
+	// basename to the output path in order to create the correct output
+	// directory.
+	if (currentDir.isTop) {
+	    outputPath = outputPath + SysUtil::removeBaseName(inputDir);
+	}
+	
 	// make the directory into which the files will be placed, opencv
-	// doesn't create directories. Remove the final slash from the output
-	if (outputPath.compare("") != 0) {
-	    outputPath.replace(0, inputDir.size(), outputDir);
-	} else {
-	    outputPath.replace(0, inputDir.size(), outputDir + SysUtil::removeBaseName(inputDir));
-	    dir = inputDir;
-	}
-	std::cout << outputPath << std::endl;
+	// doesn't create directories. 
 	if (!SysUtil::isDir(outputPath)) {
-	    cout << "Creating directory " << outputPath << endl;
-	    mkdir(outputPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
+	    if (SysUtil::queryUserYN(string(outputPath + " already exists. Files in the directory might be overwritten. Write to the directory? (y/n)"))){
+		// if answer is y, create the directory and do the extraction
+		cout << "Creating directory " << outputPath << endl;
+		mkdir(outputPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
+	    } else {
+		// If the user replies n to the question, skip processing this directory.
+		cout << "OK, skipping directory " << currentDir.path << endl;
+		continue;
+	    }
 	}
-	cout << "Processing directory " << dir << "..." << endl;
+
 	// For each file in the current directory
-	for (int fileNum = 0; fileNum < currentDir.files.size(); fileNum++) {
+	for (size_t fileNum = 0; fileNum < currentDir.files.size(); fileNum++) {
 	    // Extract the blob and then write it to the output directory,
 	    // preserving its original path below the input directory.
 	    // cout << "Processing " << *fileIterator << endl;
