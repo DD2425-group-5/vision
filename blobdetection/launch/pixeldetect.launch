@@ -1,0 +1,7 @@
+<launch>
+  <rosparam file="$(find project_launch)/config/topic_names.yaml" command="load" />
+  <rosparam file="$(find blobdetection)/config/params.yaml" command="load" />
+  <include file="$(find openni2_launch)/launch/openni2.launch" />
+
+  <node name="pixelDetector" pkg="blobdetection" type="pixelDetector" />
+</launch>

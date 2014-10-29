@@ -71,7 +71,6 @@ cv_bridge::CvImagePtr ClosestPixelDetectorNode::convertImageToRange(cv_bridge::C
      */
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
-    int count = 0;
     for (int i = 0; i < imgPtr->image.rows; i++) {
 	const float* Mi = imgPtr->image.ptr<float>(i);
 	for(int j = 0; j < imgPtr->image.cols; j++){
@@ -156,7 +155,7 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
             //find the point furthest away and replace it with this one.
             KeyPoint minkp;
             int minindex = -1;
-            for(int k = 0; k < closest_points.size(); ++k) {
+            for(size_t k = 0; k < closest_points.size(); ++k) {
                 if(cv_ptr->image.at<float>(i,j) < cv_ptr->image.at<float>(
                             closest_points[k].pt.y,closest_points[k].pt.x)) {
                     minindex = k;
@@ -191,7 +190,7 @@ KeyPoint ClosestPixelDetectorNode::naiveDetection(cv_bridge::CvImagePtr cv_ptr, 
     cv::Mat m = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC1);
 
     //do not calculate average y, we don't need that.    
-    for(int i = 0; i < closest_points.size(); ++i) {
+    for(size_t i = 0; i < closest_points.size(); ++i) {
 	float y = closest_points[i].pt.y;
 	float x = closest_points[i].pt.x;
 	//std::cout << i << ": (" << x << ", " << y << ")" << std::endl;
@@ -366,37 +365,7 @@ void ClosestPixelDetectorNode::update() {
     // blob_publisher.publish(twist_msg);
 }
 
-
-ros::NodeHandle ClosestPixelDetectorNode::nodeSetup(int argc, char* argv[]) {
-    ros::init(argc, argv, "closestPixelDetector");
-    ros::NodeHandle handle;
-
-    if (!handle.getParam("/blobdetection/numClosestPixels", numClosestPixels)){
-        ROS_ERROR("/blobdetection/numClosestPixels is not defined!");
-        std::exit(1);
-    }
-
-    if (!handle.getParam("/blobdetection/drawImages", drawImages)){
-        ROS_ERROR("/blobdetection/drawImages is not defined!");
-        std::exit(1);
-    }
-
-    if (!handle.getParam("/blobdetection/debugMessages", debugMessages)){
-        ROS_ERROR("/blobdetection/debugMessages is not defined!");
-        std::exit(1);
-    }
-
-
-    t_depth = ros::Time::now();
-    cv::namedWindow("BlobImage");
-    cv::namedWindow("DepthImage");
-    depth_subscriber = handle.subscribe("/camera/depth/image_raw", 1, &ClosestPixelDetectorNode::depthCallback, this);
-    depth_point_publisher = handle.advertise<blobdetection::depth_point>("/vision/closest_blob", 1);
-    return handle;
-}
-    
-	
-void ClosestPixelDetectorNode::runNode(ros::NodeHandle handle) {
+void ClosestPixelDetectorNode::runNode() {
     // Control @ 10 Hz
     double control_frequency = 10.0;
 
@@ -413,8 +382,25 @@ void ClosestPixelDetectorNode::runNode(ros::NodeHandle handle) {
 }
 
 ClosestPixelDetectorNode::ClosestPixelDetectorNode(int argc, char* argv[]) {
-    ros::NodeHandle handle = nodeSetup(argc, argv);
-    runNode(handle);
+    ros::init(argc, argv, "closestPixelDetector");
+    ros::NodeHandle handle;
+    
+    ROSUtil::getParam(handle, "/blobdetection/numClosestPixels", numClosestPixels);
+    ROSUtil::getParam(handle, "/blobdetection/drawImages", drawImages);
+    ROSUtil::getParam(handle, "/blobdetection/debugMessages", debugMessages);
+    t_depth = ros::Time::now();
+    cv::namedWindow("BlobImage");
+    cv::namedWindow("DepthImage");
+
+    std::string camera_sub_topic;
+    ROSUtil::getParam(handle, "/topic_list/robot_topics/published/depth_topic", camera_sub_topic);
+    std::string blob_pub_topic;
+    ROSUtil::getParam(handle, "/topic_list/vision_topics/pixel_detect/published/blob", camera_sub_topic);
+
+    depth_subscriber = handle.subscribe(camera_sub_topic, 1, &ClosestPixelDetectorNode::depthCallback, this);
+    depth_point_publisher = handle.advertise<blobdetection::depth_point>(blob_pub_topic, 1);
+
+    runNode();
 }
 
 int main(int argc, char* argv[])
