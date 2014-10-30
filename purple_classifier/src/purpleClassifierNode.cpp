@@ -1,5 +1,5 @@
 #include "purpleClassifierNode.hpp"
-
+#define PI 3.14159265359
 
 void PurpleClassifierNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     t_rgb = ros::Time::now();
@@ -49,10 +49,21 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr) {
 
     //iterate through the image, check all pixels if they are purple, and put the purple ones in
     //the vector.
+    //
+
+
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
     for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        const cv::Vec3b& tmp_vec = cv_ptr->image.at<cv::Vec3b>(i,j);
-        disc_image.at<float>(i,j) = discriminant(tmp_vec.val[0],tmp_vec.val[1],tmp_vec.val[2],0.5f,purple_model);
+        const cv::Vec3b& pixel = cv_ptr->image.at<cv::Vec3b>(i,j);
+        double r = pixel.val[2];
+        double g = pixel.val[1];
+        double b = pixel.val[0];
+        double intensity = r+b+g;
+        r = r/intensity;
+        g = g/intensity;
+
+
+        disc_image.at<float>(i,j) = discriminant(r,g);
     }
     }
     return;
@@ -64,18 +75,29 @@ float PurpleClassifierNode::gauss(float x, float mu, float sigma) {
 
 
 /**
- * class_prob = log(prior) - sum(log(sigmas)) - sum(((x-mu)^2)/2sigma^2)
+ * http://en.wikipedia.org/wiki/Multivariate_normal_distribution
  */
-float PurpleClassifierNode::discriminant(float r, float g, float b, float prior, const ModelParams &model) {
-    float sigmasum = std::log(model.std_b) + std::log(model.std_g) + std::log(model.std_r);
-    float musum = gauss(b, model.mu_b, model.std_b)
-    + gauss(g, model.mu_g, model.std_g)
-    + gauss(r, model.mu_r, model.std_r);
+float PurpleClassifierNode::discriminant(double r, double g) {
+    double rn = r-purple_model.mu[0];
+    double gn = g-purple_model.mu[1];
 
-    float res = std::log(prior) - sigmasum - musum;
+    double res = constant*std::exp(-0.5 * (rn*rn*sigma_inv[0][0] + 2*rn*gn*sigma_inv[0][1] + gn*gn*sigma_inv[1][1]));
+
 
     //ROS_INFO_STREAM("musum " << musum);
     return res;
+}
+
+void PurpleClassifierNode::calc_inv_sigma() {
+    //only works for dimension 2;
+    //http://mathworld.wolfram.com/MatrixInverse.html
+    sigma_inv = std::vector<std::vector<double> >(2);
+    sigma_inv[0] = std::vector<double>(2);
+    sigma_inv[1] = std::vector<double>(2);
+    sigma_inv[0][0] = purple_model.sigma[1][1] / sigma_det;
+    sigma_inv[0][1] = -(purple_model.sigma[0][1]) / sigma_det;
+    sigma_inv[1][0] = -(purple_model.sigma[1][0]) / sigma_det;
+    sigma_inv[1][1] = purple_model.sigma[0][0] / sigma_det;
 }
 
 void PurpleClassifierNode::update() {
@@ -98,7 +120,7 @@ void PurpleClassifierNode::update() {
     cv::Mat gray = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_32F);
     for (int row = 0; row < gray.rows; row++) {
         for (int col = 0; col < gray.cols; col++) {
-        gray.at<float>(row, col) = (((disc_image.at<float>(row, col) - min)/maxm));
+            gray.at<float>(row, col) = (((disc_image.at<float>(row, col) - min)/maxm));
         }
     }
 
@@ -123,24 +145,33 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     non_purple_rgb[1] = 0;
     non_purple_rgb[2] = 0;
 
-    /*object_models:
-      purple_cross:
-        mu_r: 84.98354533597
-        mu_g: 60.6422152725813
-        mu_b: 84.1680430098564
-        std_r: 17.3562073603737
-        std_g: 21.104604511573
-        std_b: 18.7768787379336
-      purple_cross2:
-        mu_r: 102.367348301744
-        mu_g: 85.8447735151
-        mu_b: 125.755065593005
-        std_r: 25.5595663732303
-        std_g: 27.7259334260372
-        std_b: 25.4226051646474
-      model_names: [purple_cross, purple_cross2]*/
+    /*
+    models:
+      purpleModel:
+        mu:
+          - 0.341743854434246
+          - 0.241070271079385
+        sigma:
+          - 0.00214422574915891
+          - 0.000934942249428683
+          - 0.000934942249428683
+          - 0.00159702365225887*/
 
-    purple_model = ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
+    purple_model = color_model_vardim<double>(2);
+    purple_model.mu[0] = 0.341743854434246;
+    purple_model.mu[1] = 0.241070271079385;
+    purple_model.sigma[0][0] = 0.00214422574915891;
+    purple_model.sigma[0][1] = 0.000934942249428683;
+    purple_model.sigma[1][0] = 0.000934942249428683;
+    purple_model.sigma[1][1] = 0.00159702365225887;
+
+    //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
+    sigma_det = (purple_model.sigma[0][0]*purple_model.sigma[1][1]) -
+                (purple_model.sigma[0][1]*purple_model.sigma[1][0]);
+    constant = 1.0d / std::sqrt(std::pow(2*PI,2)*sigma_det);
+    calc_inv_sigma();
+
+            //ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
     disc_image = cv::Mat::zeros(480,640,CV_32F);
 
     cv::namedWindow("purpleImage");

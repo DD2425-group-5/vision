@@ -13,7 +13,10 @@
 #include <opencv/highgui.h>
 #include <vector>
 #include <cmath>
+#include <visionutil/visionmodels.hpp>
 #include "modelParams.hpp"
+
+
 
 class PurpleClassifierNode {
 public:
@@ -30,14 +33,18 @@ private:
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
     std::vector<cv::Point_<int> > purple_points;
-    ModelParams purple_model;
+    color_model_vardim<double> purple_model;
+    double sigma_det;
+    std::vector<std::vector<double> > sigma_inv;
+    double constant;
     cv::Mat disc_image;
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
     void discriminateImage(cv_bridge::CvImagePtr cv_ptr);
-    float discriminant(float r, float g, float b, float prior, const ModelParams& model);
+    float discriminant(double r, double g);
     float gauss(float x, float mu, float sigma);
+    void calc_inv_sigma();
 
     int toRgbInt(int i);
 
