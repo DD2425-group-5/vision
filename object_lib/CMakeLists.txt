@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_lib)
 
-find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge sensor_msgs image_transport rosutil sysutil)
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge sensor_msgs image_transport rosutil sysutil visionutil)
 find_package(OpenCV REQUIRED)
 
 catkin_package(

@@ -8,6 +8,7 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 #include <stdlib.h>
+#include <visionutil/visionmodels.hpp>
 
 using namespace cv;
 using std::cout;
@@ -25,39 +26,32 @@ static const string help = "Model learner - learns basic models from images by c
 "\t\t and that no thresholding should be used to extract black pixels.\n\n"\
 "\t -o \t File into which to output the YAML file containing model parameters.";
 
-void modelsToYAML(map<string, pair<Scalar,Scalar> > modelMap, std::string output){
+void modelsToYAML(color_model_vardim<double> model, std::string output){
     using namespace YAML;
+
     Emitter out;
     out << BeginMap;
-    out << Key << "models";
-    out << Value;
-    out << BeginMap;
-    map<string, pair<Scalar,Scalar> >::iterator it;
-    vector<string> modelNames;
-    for (it = modelMap.begin(); it != modelMap.end(); ++it) {
-	modelNames.push_back(it->first);
-    	string name = it->first;
-    	pair<Scalar, Scalar> model = it->second;
-	out << Key << name.c_str();
-    	out << Value;
-    	out << BeginMap;
-    	out << Key << "mu_b";
-    	out << Value << model.first.val[0];
-    	out << Key << "mu_g";
-    	out << Value << model.first.val[1];
-    	out << Key << "mu_r";
-    	out << Value << model.first.val[2];
-    	out << Key << "std_b";
-    	out << Value << model.second.val[0];
-    	out << Key << "std_g";
-    	out << Value << model.second.val[1];
-    	out << Key << "std_r";
-    	out << Value << model.second.val[2];
-    	out << EndMap;
-    }
-
-    out << Key << "model_names";
-    out << Value << Flow << modelNames;
+        out << Key << "models";
+        out << Value;
+        out << BeginMap;
+            out << Key << "purpleModel";
+            out << Value;
+            out << BeginMap;
+                out << Key << "mu";
+                out << Value;
+                out << BeginSeq;
+                for(int i = 0; i < model.dim; ++i)
+                    out << model.mu[i];
+                out << EndSeq;
+                out << Key << "sigma";
+                out << Value;
+                out << BeginSeq;
+                for(int i = 0; i < model.dim; ++i)
+                    for(int j = 0; j < model.dim; ++j)
+                        out << model.sigma[i][j];
+                out << EndSeq;
+            out << EndMap;
+        out << EndMap;
     out << EndMap;
 
     cout << out.c_str() << endl;
@@ -67,8 +61,6 @@ void modelsToYAML(map<string, pair<Scalar,Scalar> > modelMap, std::string output
     of << out.c_str();
     of.close();
 }
-
-
 
 int main(int argc, char *argv[]) {
     if (argc < 2){
@@ -98,49 +90,88 @@ int main(int argc, char *argv[]) {
     }
 
     std::string dirName(argv[optind]);
-    
     vector<SysUtil::DirContents> content = SysUtil::getDirContents(dirName);
-    map<string, pair<Scalar,Scalar> > modelMap;
+
+    vector<Vec2d> pixels;
     for (size_t dirNum = 0; dirNum < content.size(); dirNum++) {
-	SysUtil::DirContents dc = content[dirNum];
-	cout << content[dirNum].path << endl;
+        SysUtil::DirContents dc = content[dirNum];
+        cout << content[dirNum].path << endl;
 
-	// Keep track of the mean and stdeviation averages for all images
-	Scalar meanSum, stdevSum;
+        cout << SysUtil::removeBaseName(content[dirNum].path) << endl;
+        cout << SysUtil::removeBaseName(content[dirNum].path).compare("background")<< endl;
 
-	cout << SysUtil::removeBaseName(content[dirNum].path) << endl;
-	cout << SysUtil::removeBaseName(content[dirNum].path).compare("background")<< endl;
-	for (size_t fileNum = 0; fileNum < dc.files.size(); fileNum++) {
-//	    cout << dc.files[fileNum] << endl;
-	    
-	    Mat img = imread(dc.files[fileNum], CV_LOAD_IMAGE_COLOR);
+        for (size_t fileNum = 0; fileNum < dc.files.size(); fileNum++) {
+
+            Mat img = imread(dc.files[fileNum], CV_LOAD_IMAGE_COLOR);
+            Mat img8;
+            img.convertTo(img8,CV_8UC3); //not sure if needed
 
 
-	    Mat resized;
-	    resize(img, resized, Size(), 0.2, 0.2);
-	    // The default mask is to take everything in the image
-	    Mat mask = Mat::ones(resized.rows, resized.cols, CV_8UC1);
-	    // Only threshold if bg switch not set and the directory name is not "background".
-	    if (!bg && SysUtil::removeBaseName(content[dirNum].path).compare("background") != 0) {
-		// Use a threshold to get a mask in order to
-		// extract the relevant pixels from the image,
-		// if the image is for an object
-		Mat gray;
-		cvtColor(resized, gray, CV_RGB2GRAY);
-		threshold(gray, mask, 0, 255, THRESH_BINARY | THRESH_OTSU);
-	    }
-	    
-	    // namedWindow("d", CV_WINDOW_AUTOSIZE);
-	    // imshow("d", m);
-	    // waitKey(0);
+            Mat resized;
+            resize(img8, resized, Size(), 0.2, 0.2);
+            // The default mask is to take everything in the image
+            Mat mask = Mat::ones(resized.rows, resized.cols, CV_8UC1);
+            // Only threshold if bg switch not set and the directory name is not "background".
+            if (!bg && SysUtil::removeBaseName(content[dirNum].path).compare("background") != 0) {
+                // Use a threshold to get a mask in order to
+                // extract the relevant pixels from the image,
+                // if the image is for an object
+                Mat gray;
+                cvtColor(resized, gray, CV_RGB2GRAY);
+                threshold(gray, mask, 0, 255, THRESH_BINARY | THRESH_OTSU);
+            }
 
-	    // for this image
-	    Scalar mean, stdev;
-	    meanStdDev(resized, mean, stdev, mask);
-//	    cout << "Mean: " << mean << "Stdev: " << stdev << endl;
-	    meanSum = meanSum + mean;
-	    stdevSum = stdevSum + stdev;
-	}
+            for(int row = 0; row < resized.rows; ++row) {
+                for(int col = 0; col < resized.cols; ++col) {
+                    if(mask.at<unsigned char>(row,col)) {
+                        Vec3b pixel = resized.at<Vec3b>(row,col);
+                        double r = pixel.val[2];
+                        double g = pixel.val[1];
+                        double b = pixel.val[0];
+                        double intensity = r+b+g;
+                        pixels.push_back(Vec2d(r/intensity,g/intensity));
+                    }
+                }
+            }
+        }
+    }
+
+    //calculate mean
+    double mean_r = 0;
+    double mean_g = 0;
+    double n = pixels.size();
+    color_model_vardim<double> model(2);
+
+    for(long i = 0; i < pixels.size();++i) {
+        mean_r += pixels[i].val[0];
+        mean_g += pixels[i].val[1];
+    }
+
+    mean_r /= n;
+    mean_g /= n;
+
+    model.mu[0] = mean_r;
+    model.mu[1] = mean_g;
+
+    //calculate sigma
+    //http://en.wikipedia.org/wiki/Sample_mean_and_sample_covariance#Sample_covariance
+    //can be sped up because sigma[j][k] == sigma[k][j]
+    for(int j = 0; j < 2; ++j) {
+        for(int k = 0; k < 2; ++k) {
+            double sum = 0;
+            for(int i = 0; i < n; ++i) {
+                sum+= (pixels[i].val[j] - model.mu[j]) * (pixels[i].val[k] - model.mu[k]);
+            }
+            model.sigma[j][k] = sum / (n-1);
+        }
+    }
+
+    //model is done
+    //write to file
+    modelsToYAML(model, outfile);
+
+
+    /*
 	int size = dc.files.size();
 	// Dividing by scalars is screwy, so do it manually instead.
 	cout << "Final mean: " << meanSum << " Final stdev: " << stdevSum << endl;
@@ -149,8 +180,8 @@ int main(int argc, char *argv[]) {
 	cout << "Final mean: " << Scalar(meanSum.val[0]/size, meanSum.val[1]/size, meanSum.val[2]/size)
 	     << " Final stdev: " << Scalar(stdevSum.val[0]/size, stdevSum.val[1]/size, stdevSum.val[2]/size) << endl;
 	modelMap.insert(pair<string, pair<Scalar, Scalar> >(SysUtil::removeBaseName(dc.path) ,pair<Scalar,Scalar>(fmean,fstd)));
-    }
+    */
 
-    modelsToYAML(modelMap, outfile);
+    //modelsToYAML(modelMap, outfile);
     return 0;
 }
