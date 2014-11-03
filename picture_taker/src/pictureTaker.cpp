@@ -17,6 +17,7 @@ void PictureTakerNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     img = msg;
 }
 
+/* Swaps red and blue channels */
 void PictureTakerNode::bgr2rgb(cv_bridge::CvImagePtr cv_ptr) {
     cv::Mat& m = cv_ptr->image;
     for(int row = 0; row < m.rows; ++row) {
@@ -31,12 +32,18 @@ void PictureTakerNode::bgr2rgb(cv_bridge::CvImagePtr cv_ptr) {
 
 void PictureTakerNode::savePicture() {
     cv_bridge::CvImagePtr cv_ptr = convertImage();
+
+    //get random name
     int i = std::rand();
     std::stringstream ss;
     ss << i << ".jpg";
     std::string s = ss.str();
+
+    //convert to rgb.
     if(rgb)
         bgr2rgb(cv_ptr);
+
+    //save
     cv::imwrite(s,cv_ptr->image);
     std::cout << "Successfully saved image as " << s << std::endl;
 }
@@ -47,7 +54,7 @@ ros::NodeHandle PictureTakerNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "PurpleClassifier");
     ros::NodeHandle handle;
 
-    std::srand(std::time(NULL));
+    std::srand(std::time(NULL)); //initialize seed for name generation.
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &PictureTakerNode::rgbCallback, this);
 
     return handle;
@@ -60,7 +67,7 @@ void PictureTakerNode::runNode(ros::NodeHandle handle) {
         std::cin >> input;
         if(input == 'q')
             break;
-        ros::spinOnce();
+        ros::spinOnce(); //this needs to be here, otherwise ros never calls rgbCallback.
         savePicture();
     }
 }
