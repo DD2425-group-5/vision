@@ -28,7 +28,9 @@ public:
 private:
     ros::Time t_camera;
     sensor_msgs::Image::ConstPtr img;
+    bool rgb;
 
+    void bgr2rgb(cv_bridge::CvImagePtr cv_ptr);
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     void savePicture();
 
