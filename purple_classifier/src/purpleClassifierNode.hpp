@@ -15,6 +15,7 @@
 #include <cmath>
 #include <visionutil/visionmodels.hpp>
 #include "modelParams.hpp"
+#include <rosutil/rosutil.hpp>
 
 
 
@@ -48,6 +49,7 @@ private:
 
     int toRgbInt(int i);
 
+    void readModel(ros::NodeHandle& n);
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
 };

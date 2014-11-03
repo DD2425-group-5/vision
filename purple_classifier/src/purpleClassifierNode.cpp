@@ -133,6 +133,24 @@ void PurpleClassifierNode::update() {
 
 }
 
+void PurpleClassifierNode::readModel(ros::NodeHandle& n) {
+    std::string modelName = "purpleModel";
+    std::vector<double> sig(4);
+    std::vector<double> mu(2);
+    ROSUtil::getParam(n, "/models/" + modelName + "/sigma", sig);
+    ROSUtil::getParam(n,"/models/" + modelName + "/mu", mu);
+
+    ROS_INFO_STREAM("mu: " << mu[0] << " " << mu[1]);
+    ROS_INFO_STREAM("sig: " << sig[0] << " " << sig[1] << " " << sig[2] << " " << sig[3]);
+
+    purple_model.mu[0] = mu[0];
+    purple_model.mu[1] = mu[1];
+    purple_model.sigma[0][0] = sig[0];
+    purple_model.sigma[0][1] = sig[1];
+    purple_model.sigma[1][0] = sig[2];
+    purple_model.sigma[1][1] = sig[3];
+}
+
 ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "PurpleClassifier");
     ros::NodeHandle handle;
@@ -158,12 +176,7 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
           - 0.00159702365225887*/
 
     purple_model = color_model_vardim<double>(2);
-    purple_model.mu[0] = 0.341743854434246;
-    purple_model.mu[1] = 0.241070271079385;
-    purple_model.sigma[0][0] = 0.00214422574915891;
-    purple_model.sigma[0][1] = 0.000934942249428683;
-    purple_model.sigma[1][0] = 0.000934942249428683;
-    purple_model.sigma[1][1] = 0.00159702365225887;
+    readModel(handle);
 
     //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
     sigma_det = (purple_model.sigma[0][0]*purple_model.sigma[1][1]) -
