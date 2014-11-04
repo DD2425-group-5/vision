@@ -16,3 +16,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_executable(pictureTaker src/pictureTaker.cpp)
 target_link_libraries(pictureTaker ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(pictureTaker ${catkin_EXPORTED_TARGETS})
+
+add_executable(image_gatherer src/imageGatherer.cpp)
+target_link_libraries(image_gatherer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(image_gatherer ${catkin_EXPORTED_TARGETS})
