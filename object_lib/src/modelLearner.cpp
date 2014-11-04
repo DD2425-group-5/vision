@@ -11,6 +11,8 @@
 #include <visionutil/visionmodels.hpp>
 
 using namespace cv;
+using namespace VisionModels;
+
 using std::cout;
 using std::string;
 using std::vector;
@@ -125,11 +127,13 @@ int main(int argc, char *argv[]) {
                 for(int col = 0; col < resized.cols; ++col) {
                     if(mask.at<unsigned char>(row,col)) {
                         Vec3b pixel = resized.at<Vec3b>(row,col);
-                        double r = pixel.val[2];
-                        double g = pixel.val[1];
-                        double b = pixel.val[0];
-                        double intensity = r+b+g;
-                        pixels.push_back(Vec2d(r/intensity,g/intensity));
+			double rc, gc;
+			rgb2rg_chromaticity<double>(pixel.val[2], pixel.val[1], pixel.val[0], rc, gc);
+                        // double r = pixel.val[2];
+                        // double g = pixel.val[1];
+                        // double b = pixel.val[0];
+                        // double intensity = r+b+g;
+                        pixels.push_back(Vec2d(rc, gc));
                     }
                 }
             }
@@ -142,7 +146,7 @@ int main(int argc, char *argv[]) {
     double n = pixels.size();
     color_model_vardim<double> model(2);
 
-    for(long i = 0; i < pixels.size();++i) {
+    for(size_t i = 0; i < pixels.size();++i) {
         mean_r += pixels[i].val[0];
         mean_g += pixels[i].val[1];
     }

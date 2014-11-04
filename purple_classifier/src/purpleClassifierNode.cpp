@@ -1,5 +1,6 @@
 #include "purpleClassifierNode.hpp"
-#define PI 3.14159265359
+
+using namespace VisionModels;
 
 void PurpleClassifierNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     t_rgb = ros::Time::now();
@@ -181,7 +182,7 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
     sigma_det = (purple_model.sigma[0][0]*purple_model.sigma[1][1]) -
                 (purple_model.sigma[0][1]*purple_model.sigma[1][0]);
-    constant = 1.0d / std::sqrt(std::pow(2*PI,2)*sigma_det);
+    constant = 1.0d / std::sqrt(std::pow(2*M_PI,2)*sigma_det);
     calc_inv_sigma();
 
             //ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
