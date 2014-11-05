@@ -13,6 +13,6 @@ catkin_package(
 
 include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
-add_executable(pcl_test src/pcl_test.cpp)
-target_link_libraries(pcl_test ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-add_dependencies(pcl_test ${catkin_EXPORTED_TARGETS})
+add_executable(plane_extraction src/plane_extraction.cpp)
+target_link_libraries(plane_extraction ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+add_dependencies(plane_extraction ${catkin_EXPORTED_TARGETS})
