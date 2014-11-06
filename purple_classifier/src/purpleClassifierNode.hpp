@@ -37,7 +37,6 @@ private:
     sensor_msgs::Image::ConstPtr img;
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
-    std::vector<cv::Vec2i> purple_points;
     VisionModels::color_model_vardim<double> purple_model;
     double sigma_det;
     std::vector<std::vector<double> > sigma_inv;
@@ -56,7 +55,7 @@ private:
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
-    void discriminateImage(cv_bridge::CvImagePtr cv_ptr);
+    void discriminateImage(cv_bridge::CvImagePtr cv_ptr, std::vector<cv::Vec2i>& purple_points);
     float discriminant(double r, double g);
     float gauss(float x, float mu, float sigma);
     void calc_inv_sigma();
