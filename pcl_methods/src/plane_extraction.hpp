@@ -8,6 +8,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/common/common.h>
 #include <pcl/filters/extract_indices.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <string>
@@ -19,9 +20,24 @@ struct Colour {
     int b;
 };
 
+template <typename T>
+struct CloudBounds {
+    CloudBounds(T l, T u) : lower(l), upper(u) {}
+    T lower;
+    T upper;
+};
+
 void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
-int extractPlanesByProportion(
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
-    float proportion,
-    float tolerance = 0.05,
-    Colour colour = Colour(-1,-1,-1));
+
+// std::vector<pcl::PointCloud<pcl::PointXYZRGB> > extractPlanesByProportion(
+//     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
+//     float proportion,
+//     float tolerance = 0.05,
+//     Colour colour = Colour(-1,-1,-1));
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr extractDominantPlane(
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+    float tolerance);
+
+template <typename T>
+CloudBounds<T> getCloudBounds(const typename pcl::PointCloud<T>::ConstPtr& cloud);
+
