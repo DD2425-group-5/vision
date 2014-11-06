@@ -41,7 +41,7 @@ int PurpleClassifierNode::toRgbInt(int i)  {
 
 
 void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr) {
-    //purple_points.empty();
+    purple_points.clear();
 
     //cv::Ptr p();
 
@@ -52,6 +52,9 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr) {
     //the vector.
     //
 
+    //cv::Scalar sc = cv::mean(cv_ptr->image);
+    //r_wp = sc[2]/(sc[0]+sc[1]+sc[2]);
+    //g_wp = sc[1]/(sc[0]+sc[1]+sc[2]);
 
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
     for (int j = 0; j < cv_ptr->image.cols; ++j) {
@@ -59,15 +62,72 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr) {
         double r = pixel.val[2];
         double g = pixel.val[1];
         double b = pixel.val[0];
+        if(!process_pixel(r,g,b)) {
+            disc_image.at<float>(i,j) = 0;
+            continue;
+        }
+
+
         double intensity = r+b+g;
         r = r/intensity;
         g = g/intensity;
+/*
+        double l2 = std::pow(r,2)+std::pow(g,2);
+        double m = c_r*r + c_g*g;
+        //ROS_INFO_STREAM("s_min2: " << s_min2 << " s_max2:" << s_max2 << " l2: " << l2);
+        //ROS_INFO_STREAM("w2: " << w2 << "m: " << m << " m2:" << std::pow(m,2) << " l2: " << l2);
+
+        if(
+                s_min2 < l2 &&
+                l2 < s_max2 &&
+                //m > 0 &&
+                std::pow(m,2) > w2*l2 ) {
+
+            purple_points.push_back(cv::Vec2i(i,j));
+        }
+
+*/
+
+        double rho = std::atan((r-r_wp)/(g-g_wp));
+        double s = std::sqrt(std::pow(r-r_wp,2)+std::pow(g-g_wp,2));
+        //double s_diff = purple_model.sigma[1][1]*100;
+
+        double rho_diff = purple_model.sigma[0][0]*2;
+        if( rho > purple_model.mu[0] - rho_diff &&
+            rho < purple_model.mu[0] + rho_diff &&
+            s > purple_model.mu[1] - s_diff &&
+            s < purple_model.mu[1] + s_diff) {
+
+            //disc_image.at<float>(i,j) = 1.0;
+            purple_points.push_back(cv::Vec2i(i,j));
+        }
 
 
-        disc_image.at<float>(i,j) = discriminant(r,g);
+        //else
+        //    disc_image.at<float>(i,j) = 0;
+
+        //if(rho < )
+
+        //disc_image.at<float>(i,j) = discriminant(rho,s);
     }
     }
     return;
+}
+
+bool PurpleClassifierNode::process_pixel(double r, double g, double b) {
+    if(r+b+g > 700)
+        return false;
+
+    if(r+b+g < 100)
+        return false;
+
+    //if(r > 220 && g > 220 && b > 220)
+    //    return false;
+
+
+
+
+    return true;
 }
 
 float PurpleClassifierNode::gauss(float x, float mu, float sigma) {
@@ -109,25 +169,39 @@ void PurpleClassifierNode::update() {
     //convert image to openCV image
     cv_bridge::CvImagePtr cv_ptr = convertImage();
 
+    ROS_INFO("DISCRIMINATE_BEGIN");
     discriminateImage(cv_ptr);
+    ROS_INFO("DISCRIMINATE_END");
+    //double max, min;
+    //cv::minMaxIdx(disc_image, &min, &max);
+    //float minm = min - min;
+    //float maxm = max - min;
 
-    double max, min;
-    cv::minMaxIdx(disc_image, &min, &max);
-    float minm = min - min;
-    float maxm = max - min;
+    std::vector<clustering::Cluster> clusts;
+    clustering::cluster_img(purple_points,100,clusts);
+    ROS_INFO("CLUSTERING");
+    clustering::Cluster cl = clustering::get_biggest_cluster(clusts);
+    ROS_INFO("BIGGEST_CLUSTER");
+    cv::Mat white = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_32F);
 
-    ROS_INFO_STREAM("min: " << min << " max: " << max);
+    if(cl.points.size() > 100)
+    for(int i = 0; i < cl.points.size(); ++i) {
+        white.at<float>(cl.points[i][0],cl.points[i][1]) = 1.0;
+    }
+    ROS_INFO("SET_WHITE");
 
+    //ROS_INFO_STREAM("min: " << min << " max: " << max);
+/*
     cv::Mat gray = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_32F);
     for (int row = 0; row < gray.rows; row++) {
         for (int col = 0; col < gray.cols; col++) {
             gray.at<float>(row, col) = (((disc_image.at<float>(row, col) - min)/maxm));
         }
     }
-
+*/
     //minMaxIdx(gray, &min, &max);
 
-    cv::imshow("class", gray);
+    cv::imshow("class", white);
 
     //cv::imshow("discImage", disc_image);
     cv::waitKey(3);
@@ -164,6 +238,11 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     non_purple_rgb[1] = 0;
     non_purple_rgb[2] = 0;
 
+    r_wp = ((double) 1.0)/((double) 3.0);
+    g_wp = ((double) 1.0)/((double) 3.0);
+
+
+
     /*
     models:
       purpleModel:
@@ -178,6 +257,26 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
 
     purple_model = color_model_vardim<double>(2);
     readModel(handle);
+    s_min = purple_model.mu[1]-purple_model.sigma[1][1]*100;
+    s_max = purple_model.mu[1]+purple_model.sigma[1][1]*100;
+    rho_diff = purple_model.sigma[0][0]*2;
+
+    s_min2 = std::pow(s_min,2);
+    s_max2 = std::pow(s_max,2);
+    c_r = std::sin(purple_model.mu[0]);
+    c_g = std::cos(purple_model.mu[0]);
+    w2 = std::pow(std::cos(rho_diff),2);
+    //c_r = std::sin(2*M_PI*purple_model.mu[0] / (360));
+    //c_g = std::cos(2*M_PI*purple_model.mu[0] / (360));
+    ROS_INFO("PARAMETERS:");
+    ROS_INFO_STREAM("rho: " << purple_model.mu[0] << ", rho_diff: "  << rho_diff);
+    ROS_INFO_STREAM("s_min2: " << s_min2 << ", s_max2: "  << s_max2);
+    ROS_INFO_STREAM("c_r: " << c_r << ", c_g: "  << c_g);
+    ROS_INFO_STREAM("w2: " << w2);
+
+
+
+
 
     //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
     sigma_det = (purple_model.sigma[0][0]*purple_model.sigma[1][1]) -

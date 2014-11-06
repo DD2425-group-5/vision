@@ -9,6 +9,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <visionutil/visionmodels.hpp>
+#include <cmath>
 
 using namespace cv;
 using namespace VisionModels;
@@ -95,6 +96,9 @@ int main(int argc, char *argv[]) {
     vector<SysUtil::DirContents> content = SysUtil::getDirContents(dirName);
 
     vector<Vec2d> pixels;
+    //http://www.lucs.lu.se/LUCS/M012/Minor12.pdf
+    double r_wp = ((double) 1.0)/((double) 3.0);
+    double g_wp = ((double) 1.0)/((double) 3.0);
     for (size_t dirNum = 0; dirNum < content.size(); dirNum++) {
         SysUtil::DirContents dc = content[dirNum];
         cout << content[dirNum].path << endl;
@@ -127,18 +131,18 @@ int main(int argc, char *argv[]) {
                 for(int col = 0; col < resized.cols; ++col) {
                     if(mask.at<unsigned char>(row,col)) {
                         Vec3b pixel = resized.at<Vec3b>(row,col);
-			double rc, gc;
-			rgb2rg_chromaticity<double>(pixel.val[2], pixel.val[1], pixel.val[0], rc, gc);
-                        // double r = pixel.val[2];
-                        // double g = pixel.val[1];
-                        // double b = pixel.val[0];
-                        // double intensity = r+b+g;
-                        pixels.push_back(Vec2d(rc, gc));
+                        double rc, gc;
+                        rgb2rg_chromaticity<double>(pixel.val[2], pixel.val[1], pixel.val[0], rc, gc);
+                        double rho = std::atan((rc-r_wp)/(gc-g_wp));
+                        double s = std::sqrt(std::pow(rc-r_wp,2)+std::pow(gc-g_wp,2));
+                        pixels.push_back(Vec2d(rho, s));
                     }
                 }
             }
         }
     }
+
+
 
     //calculate mean
     double mean_r = 0;

@@ -16,6 +16,10 @@
 #include <visionutil/visionmodels.hpp>
 #include "modelParams.hpp"
 #include <rosutil/rosutil.hpp>
+#include <visionutil/clustering.hpp>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 
 
@@ -33,12 +37,22 @@ private:
     sensor_msgs::Image::ConstPtr img;
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
-    std::vector<cv::Point_<int> > purple_points;
+    std::vector<cv::Vec2i> purple_points;
     VisionModels::color_model_vardim<double> purple_model;
     double sigma_det;
     std::vector<std::vector<double> > sigma_inv;
     double constant;
     cv::Mat disc_image;
+    double r_wp;
+    double g_wp;
+    double rho_diff;
+    double s_min;
+    double s_max;
+    double c_r;
+    double c_g;
+    double w2;
+    double s_min2;
+    double s_max2;
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
@@ -46,6 +60,7 @@ private:
     float discriminant(double r, double g);
     float gauss(float x, float mu, float sigma);
     void calc_inv_sigma();
+    bool process_pixel(double r, double g, double b);
 
     int toRgbInt(int i);
 
