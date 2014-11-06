@@ -34,7 +34,7 @@ private:
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
     std::vector<cv::Point_<int> > purple_points;
-    color_model_vardim<double> purple_model;
+    VisionModels::color_model_vardim<double> purple_model;
     double sigma_det;
     std::vector<std::vector<double> > sigma_inv;
     double constant;

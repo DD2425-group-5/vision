@@ -18,13 +18,10 @@ target_link_libraries(image_extractor ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sy
 add_dependencies(image_extractor ${catkin_EXPORTED_TARGETS})
 
 add_executable(model_learner src/modelLearner.cpp)
-target_link_libraries(model_learner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sysutil yaml-cpp)
+target_link_libraries(model_learner ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+sysutil yaml-cpp visionutil)
 add_dependencies(model_learner ${catkin_EXPORTED_TARGETS})
 
 add_executable(object_classifier src/objectClassifier.cpp)
 target_link_libraries(object_classifier ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} sysutil rosutil)
 add_dependencies(object_classifier ${catkin_EXPORTED_TARGETS})
-
-add_executable(image_gatherer src/imageGatherer.cpp)
-target_link_libraries(image_gatherer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(image_gatherer ${catkin_EXPORTED_TARGETS})
