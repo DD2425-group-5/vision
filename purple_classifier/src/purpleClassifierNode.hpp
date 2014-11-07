@@ -37,30 +37,22 @@ private:
     sensor_msgs::Image::ConstPtr img;
     cv::Vec3b purple_rgb;
     cv::Vec3b non_purple_rgb;
-    std::vector<cv::Vec2i> purple_points;
+    //std::vector<cv::Vec2i> purple_points;
     VisionModels::color_model_vardim<double> purple_model;
     double sigma_det;
     std::vector<std::vector<double> > sigma_inv;
     double constant;
-    cv::Mat disc_image;
-    double r_wp;
-    double g_wp;
-    double rho_diff;
-    double s_min;
-    double s_max;
-    double c_r;
-    double c_g;
-    double w2;
-    double s_min2;
-    double s_max2;
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
-    void discriminateImage(cv_bridge::CvImagePtr cv_ptr);
+    void discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::Mat& disc_image);
     float discriminant(double r, double g);
-    float gauss(float x, float mu, float sigma);
     void calc_inv_sigma();
     bool process_pixel(double r, double g, double b);
+    void get_pixel_vector(cv::Mat& src, float thresh, std::vector<cv::Vec2i> &out);
+    bool is_object(const std::vector<float>& row_sums, const std::vector<float>& col_sums,
+                   float thresh_row,float thresh_col, int lines_col, int lines_row);
+    bool is_object_help(const std::vector<float>& vec, float thresh, int lines);
 
     int toRgbInt(int i);
 

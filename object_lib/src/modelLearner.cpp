@@ -97,8 +97,8 @@ int main(int argc, char *argv[]) {
 
     vector<Vec2d> pixels;
     //http://www.lucs.lu.se/LUCS/M012/Minor12.pdf
-    double r_wp = ((double) 1.0)/((double) 3.0);
-    double g_wp = ((double) 1.0)/((double) 3.0);
+    //double r_wp = ((double) 1.0)/((double) 3.0);
+    //double g_wp = ((double) 1.0)/((double) 3.0);
     for (size_t dirNum = 0; dirNum < content.size(); dirNum++) {
         SysUtil::DirContents dc = content[dirNum];
         cout << content[dirNum].path << endl;
@@ -133,9 +133,9 @@ int main(int argc, char *argv[]) {
                         Vec3b pixel = resized.at<Vec3b>(row,col);
                         double rc, gc;
                         rgb2rg_chromaticity<double>(pixel.val[2], pixel.val[1], pixel.val[0], rc, gc);
-                        double rho = std::atan((rc-r_wp)/(gc-g_wp));
-                        double s = std::sqrt(std::pow(rc-r_wp,2)+std::pow(gc-g_wp,2));
-                        pixels.push_back(Vec2d(rho, s));
+                        //double rho = std::atan((rc-r_wp)/(gc-g_wp));
+                        //double s = std::sqrt(std::pow(rc-r_wp,2)+std::pow(gc-g_wp,2));
+                        pixels.push_back(Vec2d(rc, gc));
                     }
                 }
             }
