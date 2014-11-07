@@ -43,6 +43,18 @@ private:
     std::vector<std::vector<double> > sigma_inv;
     double constant;
 
+    //parameters
+    double rgb_sum_thresh_max;
+    double rgb_sum_thresh_min;
+    int blur_size;
+    int lines_col;
+    int lines_row;
+    float thresh_col;
+    float thresh_row;
+
+    void readParams(ros::NodeHandle& n);
+
+
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
     void discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::Mat& disc_image);

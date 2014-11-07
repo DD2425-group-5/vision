@@ -86,10 +86,10 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::M
 }
 
 bool PurpleClassifierNode::process_pixel(double r, double g, double b) {
-    if(r+b+g > 700)
+    if(r+b+g > rgb_sum_thresh_max)
         return false;
 
-    if(r+b+g < 100)
+    if(r+b+g < rgb_sum_thresh_min)
         return false;
 
     //if(r > 220 && g > 220 && b > 220)
@@ -188,7 +188,7 @@ void PurpleClassifierNode::update() {
     //ROS_INFO("DISCRIMINATE_END");
 
     cv::Mat blurred = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_32F);
-    cv::blur(disc_image,blurred,cv::Size(5,5));
+    cv::blur(disc_image,blurred,cv::Size(blur_size,blur_size));
     //ROS_INFO("BLUR END");
 
     //std::vector<cv::Vec2i> purple_points;
@@ -211,10 +211,10 @@ void PurpleClassifierNode::update() {
     clustering::rows_sum(blurred,row_sums);
     clustering::cols_sum(blurred,col_sums);
 
-    int lines_col = 60;
-    int lines_row = 60;
-    float thresh_col = 1000;
-    float thresh_row = 1000;
+    //int lines_col = 60;
+    //int lines_row = 60;
+    //float thresh_col = 1000;
+    //float thresh_row = 1000;
 
     bool found = is_object(row_sums,col_sums,thresh_row,thresh_col, lines_col, lines_row);
 
@@ -285,6 +285,22 @@ void PurpleClassifierNode::readModel(ros::NodeHandle& n) {
     purple_model.sigma[1][1] = sig[3];
 }
 
+void PurpleClassifierNode::readParams(ros::NodeHandle& n) {
+    ROSUtil::getParam(n, "/purple_classifier_params/rgb_sum_thresh_max", rgb_sum_thresh_max);
+    ROSUtil::getParam(n, "/purple_classifier_params/rgb_sum_thresh_min", rgb_sum_thresh_min);
+    ROSUtil::getParam(n, "/purple_classifier_params/blur_kernel_size", blur_size);
+    ROSUtil::getParam(n, "/purple_classifier_params/lines_col", lines_col);
+    ROSUtil::getParam(n, "/purple_classifier_params/lines_row", lines_row);
+    ROSUtil::getParam(n, "/purple_classifier_params/thresh_col", thresh_col);
+    ROSUtil::getParam(n, "/purple_classifier_params/thresh_row", thresh_row);
+
+    ROS_INFO_STREAM("Parameters read. rgb_sum_thresh max and min: " << rgb_sum_thresh_max
+                    << " " << rgb_sum_thresh_min);
+    ROS_INFO_STREAM("Blur kernel size set to (" << blur_size << "," << blur_size << ")");
+    ROS_INFO_STREAM("lines_col: " << lines_col << " lines_row: " << lines_row
+                    << " thresh_col: " << thresh_col << " thresh_row: " << thresh_row);
+ }
+
 ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "PurpleClassifier");
     ros::NodeHandle handle;
@@ -311,6 +327,7 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
 
     purple_model = color_model_vardim<double>(2);
     readModel(handle);
+    readParams(handle);
 
 
     //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
