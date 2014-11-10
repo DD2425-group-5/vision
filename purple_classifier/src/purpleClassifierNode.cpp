@@ -56,31 +56,35 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::M
     //r_wp = sc[2]/(sc[0]+sc[1]+sc[2]);
     //g_wp = sc[1]/(sc[0]+sc[1]+sc[2]);
 
+    cv::Scalar mea = cv::mean(cv_ptr->image);
+    ROS_INFO_STREAM("c0: " << mea[0] << " c1: " << mea[1] << " c2: " << mea[2]);
+
     for (int i = 0; i < cv_ptr->image.rows; ++i) {
-    for (int j = 0; j < cv_ptr->image.cols; ++j) {
-        const cv::Vec3b& pixel = cv_ptr->image.at<cv::Vec3b>(i,j);
-        double r = pixel.val[2];
-        double g = pixel.val[1];
-        double b = pixel.val[0];
-        if(!process_pixel(r,g,b)) {
-            disc_image.at<float>(i,j) = 0;
-            continue;
+        for (int j = 0; j < cv_ptr->image.cols; ++j) {
+            const cv::Vec3b& pixel = cv_ptr->image.at<cv::Vec3b>(i,j);
+            double r = pixel.val[0];
+            double g = pixel.val[1];
+            double b = pixel.val[2];
+
+            if(!process_pixel(r,g,b)) {
+                disc_image.at<float>(i,j) = 0;
+                continue;
+            }
+
+
+            double intensity = r+b+g;
+            r = r/intensity;
+            g = g/intensity;
+
+
+
+            //else
+            //    disc_image.at<float>(i,j) = 0;
+
+            //if(rho < )
+
+            disc_image.at<float>(i,j) = discriminant(r,g);
         }
-
-
-        double intensity = r+b+g;
-        r = r/intensity;
-        g = g/intensity;
-
-
-
-        //else
-        //    disc_image.at<float>(i,j) = 0;
-
-        //if(rho < )
-
-        disc_image.at<float>(i,j) = discriminant(r,g);
-    }
     }
     return;
 }
