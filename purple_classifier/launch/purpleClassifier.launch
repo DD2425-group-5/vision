@@ -1,0 +1,9 @@
+<launch>
+  <rosparam file="$(find purple_classifier)/config/modelparams.yaml" command="load" />
+  <rosparam file="$(find purple_classifier)/config/purple_classifier_params.yaml" command="load" />
+  <node name="purpleClassifier" pkg="purple_classifier" type="purpleClassifier" output="screen" />
+
+    
+
+
+</launch>

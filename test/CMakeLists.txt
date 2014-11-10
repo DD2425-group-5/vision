@@ -170,3 +170,7 @@ add_dependencies(formattester ${catkin_EXPORTED_TARGETS})
 add_executable(hist src/depthhistogram.cpp)
 target_link_libraries(hist ${catkin_LIBRARIES})
 add_dependencies(hist ${catkin_EXPORTED_TARGETS})
+
+add_executable(threshold_check src/threshold.cpp)
+target_link_libraries(threshold_check ${catkin_LIBRARIES})
+add_dependencies(threshold_check ${catkin_EXPORTED_TARGETS})
