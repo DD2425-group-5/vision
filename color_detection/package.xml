@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package>
+  <name>color_detection</name>
+  <version>0.0.0</version>
+  <description>The color_detection package</description>
+
+  <maintainer email="dmitrijl@kth.se">dmitrij</maintainer>
+
+  <license>BSD</license>
+
+  <author email="dmitrijl@kth.se">Dmitrij Lioubartsev</author>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <run_depend>roscpp</run_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <build_depend>image_transport</build_depend>
+  <run_depend>image_transport</run_depend>
+  <build_depend>opencv2</build_depend>
+  <run_depend>opencv2</run_depend>  
+  <build_depend>cv_bridge</build_depend>
+  <run_depend>cv_bridge</run_depend>
+  <build_depend>rosutil</build_depend>
+  <run_depend>rosutil</run_depend>  
+  <build_depend>visionutil</build_depend>
+  <run_depend>visionutil</run_depend>  
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- You can specify that this package is a metapackage here: -->
+    <!-- <metapackage/> -->
+
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
