@@ -329,13 +329,13 @@ void PurpleClassifierNode::update() {
 
     //minMaxIdx(gray, &min, &max);
 
-    cv::imshow("thresh", thresh);
-    cv::imshow("disc_image", gray);
-    cv::imshow("contours", drawing);
-    cv::imshow("binary", binary);
+   // cv::imshow("thresh", thresh);
+    //cv::imshow("disc_image", gray);
+   // cv::imshow("contours", drawing);
+    //cv::imshow("binary", binary);
 
     //cv::imshow("discImage", disc_image);
-    cv::waitKey(3);
+    //cv::waitKey(3);
 
 }
 
@@ -411,10 +411,10 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
             //ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
     //disc_image = cv::Mat::zeros(480,640,CV_32F);
 
-    cv::namedWindow("thresh",CV_WINDOW_AUTOSIZE );
-    cv::namedWindow("disc_image", CV_WINDOW_AUTOSIZE);
-    cv::namedWindow("contours", CV_WINDOW_AUTOSIZE);
-    cv::namedWindow("binary", CV_WINDOW_AUTOSIZE);
+    //cv::namedWindow("thresh",CV_WINDOW_AUTOSIZE );
+    //cv::namedWindow("disc_image", CV_WINDOW_AUTOSIZE);
+    //cv::namedWindow("contours", CV_WINDOW_AUTOSIZE);
+    //cv::namedWindow("binary", CV_WINDOW_AUTOSIZE);
 
     t_rgb = ros::Time::now();
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &PurpleClassifierNode::rgbCallback, this);
