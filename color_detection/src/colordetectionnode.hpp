@@ -8,6 +8,7 @@
 //std
 #include <vector>
 #include <string>
+#include <cmath>
 
 //image conversion
 #include <image_transport/image_transport.h>
@@ -29,17 +30,33 @@ private:
     struct color_alg_params {
         VisionModels::color_model_vardim<double> color_model;
 
+
+        //object detection algorithm parameters
         int blur_size;
         int lines_col;
         int lines_row;
         float thresh_col;
         float thresh_row;
-        /*
-        color_alg_params() {}
-        color_alg_params(int blur_size, int lines_col, int lines_row, float thresh_col, float thresh_row) :
-            blur_size(blur_size), lines_col(lines_col), lines_row(lines_row), thresh_col(thresh_col),
-            thresh_row(thresh_row) {}
-        */
+
+        //these are helper variables that are derived from color model
+        //call the corresponding member function to calculate them.
+        std::vector<std::vector<double> > sigma_inv;
+        double gauss_constant;
+
+
+        /*IMPORTANT: initialize color_model before calling this!
+        Calculates and sets gauss_constant and sigma_inv.*/
+        void precalc_vars() {
+            //http://en.wikipedia.org/wiki/Multivariate_normal_distribution
+            double sigma_det = (color_model.sigma[0][0]*color_model.sigma[1][1]) -
+                               (color_model.sigma[0][1]*color_model.sigma[1][0]);
+            gauss_constant = 1.0d / std::sqrt(std::pow(2*M_PI,2)*sigma_det);
+
+            sigma_inv = std::vector<std::vector<double> >(2);
+
+        }
+
+
     };
 
 

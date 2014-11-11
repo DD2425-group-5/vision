@@ -81,8 +81,21 @@ void ColorDetectionNode::readModel(ros::NodeHandle n, std::string color_model_na
 
 }
 
+/**
+Discriminate against some images. We don't take kindly to their types.
+*/
+void ColorDetectionNode::multiGaussian(const cv::Mat& src, cv::Mat& output,
+                                       VisionModels::color_model_vardim<double> model) {
 
-ColorDetectionNode::update() {
+
+}
+
+
+
+/**
+Update. Run once every tick.
+*/
+void ColorDetectionNode::update() {
     if((ros::Time::now()-t_rgb).toSec()>1.0) {
         return;
     }
@@ -97,7 +110,7 @@ ColorDetectionNode::update() {
 
 }
 
-ColorDetectionNode::runNode(ros::NodeHandle handle) {
+void ColorDetectionNode::runNode(ros::NodeHandle handle) {
     // Control @ 10 Hz
     double control_frequency = 10.0;
 
@@ -113,7 +126,7 @@ ColorDetectionNode::runNode(ros::NodeHandle handle) {
     }
 }
 
-ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
+ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
     ros::init(argc, argv, "PurpleClassifier");
     ros::NodeHandle handle;
 
