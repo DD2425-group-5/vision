@@ -40,7 +40,7 @@ int PurpleClassifierNode::toRgbInt(int i)  {
 }
 
 
-void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::Mat &disc_image) {
+void PurpleClassifierNode::discriminateImage(const cv::Mat &src, cv::Mat &disc_image) {
     //purple_points.clear();
 
     //cv::Ptr p();
@@ -56,12 +56,12 @@ void PurpleClassifierNode::discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::M
     //r_wp = sc[2]/(sc[0]+sc[1]+sc[2]);
     //g_wp = sc[1]/(sc[0]+sc[1]+sc[2]);
 
-    cv::Scalar mea = cv::mean(cv_ptr->image);
-    ROS_INFO_STREAM("c0: " << mea[0] << " c1: " << mea[1] << " c2: " << mea[2]);
+    //cv::Scalar mea = cv::mean(cv_ptr->image);
+    //ROS_INFO_STREAM("c0: " << mea[0] << " c1: " << mea[1] << " c2: " << mea[2]);
 
-    for (int i = 0; i < cv_ptr->image.rows; ++i) {
-        for (int j = 0; j < cv_ptr->image.cols; ++j) {
-            const cv::Vec3b& pixel = cv_ptr->image.at<cv::Vec3b>(i,j);
+    for (int i = 0; i < src.rows; ++i) {
+        for (int j = 0; j < src.cols; ++j) {
+            const cv::Vec3b& pixel = src.at<cv::Vec3b>(i,j);
             double r = pixel.val[0];
             double g = pixel.val[1];
             double b = pixel.val[2];
@@ -136,16 +136,16 @@ void PurpleClassifierNode::get_pixel_vector(cv::Mat& src, float thresh,std::vect
 
     int largerthan1 = 0;
     for (int i = 0; i < src.rows; ++i) {
-    for (int j = 0; j < src.cols; ++j) {
-        //ROS_INFO_STREAM("SRC AT: " << src.at<float>(i,j));
-        //if(src.at<float>(i,j) > 1.0)
-        //    largerthan1 += 1;
-        if(src.at<float>(i,j) > thresh) {
-            out.push_back(cv::Vec2i(i,j));
+        for (int j = 0; j < src.cols; ++j) {
+            //ROS_INFO_STREAM("SRC AT: " << src.at<float>(i,j));
+            //if(src.at<float>(i,j) > 1.0)
+            //    largerthan1 += 1;
+            if(src.at<float>(i,j) > thresh) {
+                out.push_back(cv::Vec2i(i,j));
+            }
+
+
         }
-
-
-    }
     }
 
     //ROS_INFO_STREAM("pixels larger than 1: " << largerthan1);
@@ -175,6 +175,9 @@ bool PurpleClassifierNode::is_object_help(const std::vector<float>& vec, float t
     return false;
 }
 
+bool PurpleClassifierNode::contourSort(std::vector<cv::Point> c1, std::vector<cv::Point> c2) {
+    return cv::contourArea(c1) > cv::contourArea(c2);
+}
 
 
 void PurpleClassifierNode::update() {
@@ -187,12 +190,14 @@ void PurpleClassifierNode::update() {
 
 
     //ROS_INFO("DISCRIMINATE_BEGIN");
+    cv::Mat blurred = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC3);
+    cv::blur(cv_ptr->image,blurred,cv::Size(blur_size,blur_size));
+
     cv::Mat disc_image = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_32F);
-    discriminateImage(cv_ptr,disc_image);
+    discriminateImage(blurred,disc_image);
     //ROS_INFO("DISCRIMINATE_END");
 
-    cv::Mat blurred = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_32F);
-    cv::blur(disc_image,blurred,cv::Size(blur_size,blur_size));
+
     //ROS_INFO("BLUR END");
 
     //std::vector<cv::Vec2i> purple_points;
@@ -210,10 +215,72 @@ void PurpleClassifierNode::update() {
     float maxm = max - min;
     float maxmb = maxb-minb;
 
-    std::vector<float> row_sums(blurred.rows);
-    std::vector<float> col_sums(blurred.cols);
-    clustering::rows_sum(blurred,row_sums);
-    clustering::cols_sum(blurred,col_sums);
+
+
+    cv::Mat thresh;
+    cv::threshold(disc_image, thresh, 100, 1, cv::THRESH_BINARY);
+
+    cv::Mat binary = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_8UC1);
+    thresh.convertTo(binary,CV_8UC1);
+
+    /*int numbinaries = 0;
+    for(int i = 0; i < thresh.rows; ++i) {
+        for(int j = 0; j < thresh.cols; ++j) {
+            if(thresh.at<float>(i,j) > 0) {
+                binary.at<unsigned char>(i,j) = 255;
+                //ROS_INFO_STREAM("SETTING BINARY TO " << (int) binary.at<unsigned char>(i,j) );
+                numbinaries += 1;
+            }
+            //binary.at<unsigned char>(i,j) = thresh.at<float>(i,j);
+        }
+    }*/
+
+    //ROS_INFO_STREAM("NUM BINARIES: " << numbinaries);
+
+    //ROS_INFO_STREAM("THRESH TYPE: " << thresh.type());
+
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+
+    cv::findContours(binary, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    std::sort(contours.begin(), contours.end(), &PurpleClassifierNode::contourSort);
+
+    int biggest_contour_size = 0;
+
+
+    //ROS_INFO_STREAM("countour sizes: " << contours.size());
+    if(contours.size() > 0)
+        biggest_contour_size = contours[0].size();
+        //ROS_INFO_STREAM("Biggest contour: " << contours[0].size());
+    else
+        biggest_contour_size = 0;
+
+    if(biggest_contour_size > 70 && biggest_contour_size < 2000)
+        ROS_INFO_STREAM("OBJECT DETECTED! contour size: " << biggest_contour_size);
+    else
+        ROS_INFO("NOPE");
+
+        //ROS_INFO("NO CONTOURS");
+    /*for(int i = 0; i < contours.size(); ++i) {
+        ROS_INFO_STREAM("C: " << contours[i].size());
+    }*/
+
+    cv::Mat drawing = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_8UC1);
+    cv::Scalar colour = cv::Scalar(1,1,1);
+    cv::drawContours(drawing, contours, 0, colour, CV_FILLED);
+
+
+
+
+    //ROS_INFO("AFTER THRESH");
+
+/*
+    std::vector<float> row_sums(disc_image.rows);
+    std::vector<float> col_sums(disc_image.cols);
+
+    float min_val = -1;
+    clustering::rows_sum(thresh,row_sums,min_val);
+    clustering::cols_sum(thresh,col_sums,min_val);
 
     //int lines_col = 60;
     //int lines_row = 60;
@@ -226,7 +293,7 @@ void PurpleClassifierNode::update() {
         ROS_INFO("OBJECT DETECTED!");
     else
         ROS_INFO("NOPE");
-
+*/
 
     /*
     std::vector<clustering::Cluster> clusts;
@@ -251,20 +318,21 @@ void PurpleClassifierNode::update() {
     //ROS_INFO_STREAM("min: " << min << " max: " << max);
     //ROS_INFO_STREAM("minblur: " << minb << " maxblur: " << maxb);
     cv::Mat gray = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_32F);
-    cv::Mat gray_blur = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_32F);
+    //cv::Mat gray_blur = cv::Mat::zeros(disc_image.rows, disc_image.cols, CV_32F);
     for (int row = 0; row < gray.rows; row++) {
         for (int col = 0; col < gray.cols; col++) {
             gray.at<float>(row, col) = (((disc_image.at<float>(row, col) - min)/maxm));
-            gray_blur.at<float>(row, col) = (((blurred.at<float>(row, col) - minb)/maxmb));
+            //gray_blur.at<float>(row, col) = (((blurred.at<float>(row, col) - minb)/maxmb));
         }
     }
     //ROS_INFO("IMAGE WRITE");
 
     //minMaxIdx(gray, &min, &max);
 
-    cv::imshow("blurred", gray_blur);
-    cv::imshow("noblur", gray);
-    //cv::imshow("clustered", white);
+    cv::imshow("thresh", thresh);
+    cv::imshow("disc_image", gray);
+    cv::imshow("contours", drawing);
+    cv::imshow("binary", binary);
 
     //cv::imshow("discImage", disc_image);
     cv::waitKey(3);
@@ -343,10 +411,10 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
             //ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
     //disc_image = cv::Mat::zeros(480,640,CV_32F);
 
-    //cv::namedWindow("purpleImage");
-    cv::namedWindow("noblur", CV_WINDOW_AUTOSIZE);
-    cv::namedWindow("blurred", CV_WINDOW_AUTOSIZE);
-    cv::namedWindow("clustered", CV_WINDOW_AUTOSIZE);
+    cv::namedWindow("thresh",CV_WINDOW_AUTOSIZE );
+    cv::namedWindow("disc_image", CV_WINDOW_AUTOSIZE);
+    cv::namedWindow("contours", CV_WINDOW_AUTOSIZE);
+    cv::namedWindow("binary", CV_WINDOW_AUTOSIZE);
 
     t_rgb = ros::Time::now();
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &PurpleClassifierNode::rgbCallback, this);

@@ -17,6 +17,7 @@
 #include "modelParams.hpp"
 #include <rosutil/rosutil.hpp>
 #include <visionutil/clustering.hpp>
+#include <algorithm>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -54,10 +55,10 @@ private:
 
     void readParams(ros::NodeHandle& n);
 
-
+    static bool contourSort(std::vector<cv::Point> c1, std::vector<cv::Point> c2);
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     cv_bridge::CvImagePtr convertImage();
-    void discriminateImage(cv_bridge::CvImagePtr cv_ptr, cv::Mat& disc_image);
+    void discriminateImage(const cv::Mat& src, cv::Mat& disc_image);
     float discriminant(double r, double g);
     void calc_inv_sigma();
     bool process_pixel(double r, double g, double b);
