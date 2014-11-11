@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pcl_methods)
 
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs image_transport pcl_ros pcl_conversions)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs image_transport pcl_ros pcl_conversions pclutil)
 find_package(PCL REQUIRED)
 
 catkin_package(
@@ -14,5 +14,5 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 add_executable(plane_extraction src/plane_extraction.cpp)
-target_link_libraries(plane_extraction ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(plane_extraction ${catkin_LIBRARIES} ${PCL_LIBRARIES} pclutil)
 add_dependencies(plane_extraction ${catkin_EXPORTED_TARGETS})
