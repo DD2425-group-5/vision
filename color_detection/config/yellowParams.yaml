@@ -1,12 +1,12 @@
 models: {
-  purple: {
+  yellow: {
     gauss_thresh: 100,
     min_contour_size: 50
   }
 }
 
 models:
-  purple:
+  yellow:
     mu:
       - 0.378115815243766
       - 0.24700312807057
@@ -15,6 +15,5 @@ models:
       - 0.000451276496783459
       - 0.000451276496783459
       - 0.00112809750168412
-
 
 

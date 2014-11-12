@@ -100,7 +100,7 @@ void ColorDetectionNode::update() {
     cv::Mat rg_chrom_img;
     rgb2rgChromasity(blurred,rg_chrom_img);
 
-    //calculate blobs for each model
+    //calculate contours for each model
     std::vector<int> biggest_contours(models.size());
     for(int i = 0; i < models.size(); ++i) {
         cv::Mat gauss_img;
@@ -125,13 +125,38 @@ void ColorDetectionNode::update() {
         else
             biggest_contours[i] = 0;
 
-        cv::imshow("thresh", thresh);
-        cv::waitKey(3);
     }
+    ROS_INFO_STREAM("Contour size of model index " << 5 << ": " << biggest_contours[5]);
+    //cv::imshow("thresh", thresh);
+    //cv::waitKey(3);
 
-    for(int i = 0; i < biggest_contours.size(); ++i) {
-        ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
-    }
+
+    //create msg
+    color_detection::colors_detected msg;
+
+    if(biggest_contours[0] >= models[0].min_contour_size)
+        msg.blue = true;
+    if(biggest_contours[1] >= models[1].min_contour_size)
+        msg.green = true;
+    if(biggest_contours[2] >= models[2].min_contour_size)
+        msg.red = true;
+    if(biggest_contours[3] >= models[3].min_contour_size)
+        msg.yellow = true;
+    if(biggest_contours[4] >= models[4].min_contour_size)
+        msg.orange = true;
+    if(biggest_contours[5] >= models[5].min_contour_size)
+        msg.purple = true;
+
+    //publish message
+    classifier_publisher.publish(msg);
+
+
+    //classify
+    //for(int i = 0; i < biggest_contours.size(); ++i) {
+
+
+        //ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
+    //}
 
 
 
@@ -216,9 +241,14 @@ ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
 
     //read and store models
     //TODO: for now only reads purple
-    color_alg_params cap;
-    readModel(handle,"purple",cap);
-    models.push_back(cap);
+    const int num_colors = 6;
+    std::string colors[num_colors] = {"blue","green","red","yellow","orange","purple"};
+
+    for(int i = 0; i < num_colors; ++i) {
+        color_alg_params cap;
+        readModel(handle,colors[i],cap);
+        models.push_back(cap);
+    }
 
     //read parameters
     readParameters(handle);
@@ -227,7 +257,7 @@ ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
     //general ros setup
     t_rgb = ros::Time::now();
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &ColorDetectionNode::rgbCallback, this);
-    classifier_publisher = handle.advertise<sensor_msgs::Image>("/vision/color_classifier", 1);
+    classifier_publisher = handle.advertise<color_detection::colors_detected>("/vision/color_classifier", 1);
     return handle;
 }
 

@@ -5,6 +5,9 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 
+//own message
+#include <color_detection/colors_detected.h>
+
 //std
 #include <vector>
 #include <string>
