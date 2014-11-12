@@ -50,6 +50,37 @@ Calculates the multivariate gaussian of every pixel rg-chromasity values.
 See:
 en.wikipedia.org/wiki/Multivariate_normal_distribution
 
+some effectivizations:
+This is the original calculation:
+
+double res = model.gauss_constant *
+   std::exp(-0.5 * (rn*rn*model.sigma_inv[0][0] +
+                    2*rn*gn*model.sigma_inv[0][1] +
+                    gn*gn*model.sigma_inv[1][1]));
+
+Then the threshold was set to model.gauss_thresh
+First, some calculations can be moved out, specifically the -0.5
+multiplied with the constants within.
+This gives the calculation
+
+model.gauss_constant * exp(rn*rn*pre1 + rn*gn*pre2 + gn*gn*pre3)
+
+This made it approx. 30 % faster. The pre-variables were moved out
+to the color_alg_params struct. However, not enough.
+
+Now we take the logarithm of res. We get the calculation
+
+log(model.gauss_constant) + rn*rn*pre1 + rn*gn*pre2 + gn*gn*pre3
+
+The threshold test is then set to log(model.gauss_thresh)
+We then move the log(model.gauss_constant) out to the threshold instead.
+This way, that addition is only done once for every image, instead of once
+for every pixel in every image (approx 300k additions saved).
+
+Thus the final calculation can be seen below in the code. In total, over 6 times faster
+than it was before any optimizations. Everything that could be precalculated was moved
+out to the precalc() method of the color_alg_params struct.
+
 NOTE:
 reinitializes output
 */
@@ -104,9 +135,11 @@ void ColorDetectionNode::update() {
     //calculate contours for each model
     std::vector<int> biggest_contours(models.size());
     for(int i = 0; i < models.size(); ++i) {
+        //calculate gaussian values
         cv::Mat gauss_img;
         multiGaussian(rg_chrom_img,gauss_img,models[i]);
 
+        //make a thresholded binary image
         cv::Mat thresh;
         cv::threshold(gauss_img, thresh, models[i].gauss_thresh, 1, cv::THRESH_BINARY);
 
@@ -121,6 +154,7 @@ void ColorDetectionNode::update() {
         cv::findContours(binary, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
         std::sort(contours.begin(), contours.end(), &ColorDetectionNode::contourSort);
 
+        //save biggest contour size
         if(contours.size() > 0)
             biggest_contours[i] = contours[0].size();
         else
@@ -139,6 +173,7 @@ void ColorDetectionNode::update() {
     //create msg
     color_detection::colors_detected msg;
 
+    //classify
     if(biggest_contours[0] >= models[0].min_contour_size)
         msg.blue = true;
     if(biggest_contours[1] >= models[1].min_contour_size)

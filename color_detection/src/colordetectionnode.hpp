@@ -58,6 +58,11 @@ private:
             double sigma_det = (color_model.sigma[0][0]*color_model.sigma[1][1]) -
                                (color_model.sigma[0][1]*color_model.sigma[1][0]);
             gauss_constant = 1.0d / std::sqrt(std::pow(2*M_PI,2)*sigma_det);
+
+            //optimizations
+            //see comments for the multigaussian method in the .cpp file.
+            //for the reasoning of these changes.
+            //optimizations set gauss_thresh to log(gauess_thresh) - gauss_constant.
             gauss_constant = std::log(gauss_constant);
             gauss_thresh = std::log(gauss_thresh);
             gauss_thresh -= gauss_constant;
@@ -69,6 +74,8 @@ private:
             sigma_inv[0][1] = -(color_model.sigma[0][1]) / sigma_det;
             sigma_inv[1][0] = -(color_model.sigma[1][0]) / sigma_det;
             sigma_inv[1][1] = color_model.sigma[0][0] / sigma_det;
+
+            //also optimizations, see comments for the multigaussian method in the cpp file.
 
             pre1 = -0.5*sigma_inv[0][0];
             pre2 = -0.5*2*sigma_inv[0][1];
