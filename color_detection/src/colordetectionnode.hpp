@@ -46,6 +46,9 @@ private:
         //call the corresponding member function to calculate them.
         std::vector<std::vector<double> > sigma_inv;
         double gauss_constant;
+        double pre1;
+        double pre2;
+        double pre3;
 
 
         /*IMPORTANT: initialize color_model before calling this!
@@ -55,6 +58,9 @@ private:
             double sigma_det = (color_model.sigma[0][0]*color_model.sigma[1][1]) -
                                (color_model.sigma[0][1]*color_model.sigma[1][0]);
             gauss_constant = 1.0d / std::sqrt(std::pow(2*M_PI,2)*sigma_det);
+            gauss_constant = std::log(gauss_constant);
+            gauss_thresh = std::log(gauss_thresh);
+            gauss_thresh -= gauss_constant;
 
             sigma_inv = std::vector<std::vector<double> >(2);
             sigma_inv[0] = std::vector<double>(2);
@@ -63,6 +69,10 @@ private:
             sigma_inv[0][1] = -(color_model.sigma[0][1]) / sigma_det;
             sigma_inv[1][0] = -(color_model.sigma[1][0]) / sigma_det;
             sigma_inv[1][1] = color_model.sigma[0][0] / sigma_det;
+
+            pre1 = -0.5*sigma_inv[0][0];
+            pre2 = -0.5*2*sigma_inv[0][1];
+            pre3 = -0.5*sigma_inv[1][1];
         }
 
 

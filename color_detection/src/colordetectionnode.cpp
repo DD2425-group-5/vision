@@ -56,18 +56,13 @@ reinitializes output
 void ColorDetectionNode::multiGaussian(const cv::Mat& src, cv::Mat& output,
                                        const color_alg_params& model) {
     output = cv::Mat(src.rows,src.cols,CV_32F);
-    double pre1 = -0.5*model.sigma_inv[0][0];
-    double pre2 = -0.5*2*model.sigma_inv[0][1];
-    double pre3 = -0.5*model.sigma_inv[1][1];
-    double log_const = std::log(model.gauss_constant);
-
-            //= 2*model.sigma_inv[0][1];
     for(int row = 0; row < src.rows; ++row) {
         for(int col = 0; col < src.cols; ++col) {
             const cv::Vec2f& tmp = src.at<cv::Vec2f>(row,col);
             double rn = tmp.val[0]-model.color_model.mu[0];
             double gn = tmp.val[1]-model.color_model.mu[1];
-            double res = log_const + rn*rn*pre1 + rn*gn*pre2 + gn*gn*pre3;
+            double res = rn*rn*model.pre1 + rn*gn*model.pre2 + gn*gn*model.pre3;
+            //double res = log_const + rn*rn*pre1 + rn*gn*pre2 + gn*gn*pre3;
             /*double res = model.gauss_constant *
                        std::exp(-0.5 * (rn*rn*model.sigma_inv[0][0] +
                                         2*rn*gn*model.sigma_inv[0][1] +
@@ -109,35 +104,22 @@ void ColorDetectionNode::update() {
     //calculate contours for each model
     std::vector<int> biggest_contours(models.size());
     for(int i = 0; i < models.size(); ++i) {
-        if(i == 0)
-            ROS_INFO("BEGIN_LOOP");
         cv::Mat gauss_img;
         multiGaussian(rg_chrom_img,gauss_img,models[i]);
-        if(i == 0)
-            ROS_INFO("MULTIGAUSS");
 
         cv::Mat thresh;
-        cv::threshold(gauss_img, thresh, std::log(models[i].gauss_thresh), 1, cv::THRESH_BINARY);
-        if(i == 0)
-            ROS_INFO("THRESH");
+        cv::threshold(gauss_img, thresh, models[i].gauss_thresh, 1, cv::THRESH_BINARY);
 
         //convert to a binary CV_8UC1 image. Needed for contour algorithm.
         cv::Mat binary = cv::Mat::zeros(gauss_img.rows, gauss_img.cols, CV_8UC1);
         thresh.convertTo(binary,CV_8UC1);
-        if(i == 0)
-            ROS_INFO("CONVERTED TO BINARY");
 
         //do contouring
         std::vector<std::vector<cv::Point> > contours;
         std::vector<cv::Vec4i> hierarchy;
 
         cv::findContours(binary, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-        if(i == 0)
-            ROS_INFO("CONTOURS DONE");
         std::sort(contours.begin(), contours.end(), &ColorDetectionNode::contourSort);
-        if(i == 0)
-            ROS_INFO("SORTED");
-
 
         if(contours.size() > 0)
             biggest_contours[i] = contours[0].size();
