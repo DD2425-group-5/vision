@@ -17,6 +17,9 @@
 //opencv
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/mat.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv/highgui.h>
 
 //util
 #include <visionutil/visionmodels.hpp>
@@ -26,17 +29,15 @@ class ColorDetectionNode {
 public:
     ColorDetectionNode(int argc, char* argv[]);
 
+
 private:
     struct color_alg_params {
         VisionModels::color_model_vardim<double> color_model;
 
 
         //object detection algorithm parameters
-        int blur_size;
-        int lines_col;
-        int lines_row;
-        float thresh_col;
-        float thresh_row;
+        int min_contour_size;
+        float gauss_thresh;
 
         //these are helper variables that are derived from color model
         //call the corresponding member function to calculate them.
@@ -53,14 +54,16 @@ private:
             gauss_constant = 1.0d / std::sqrt(std::pow(2*M_PI,2)*sigma_det);
 
             sigma_inv = std::vector<std::vector<double> >(2);
-
+            sigma_inv[0] = std::vector<double>(2);
+            sigma_inv[1] = std::vector<double>(2);
+            sigma_inv[0][0] = color_model.sigma[1][1] / sigma_det;
+            sigma_inv[0][1] = -(color_model.sigma[0][1]) / sigma_det;
+            sigma_inv[1][0] = -(color_model.sigma[1][0]) / sigma_det;
+            sigma_inv[1][1] = color_model.sigma[0][0] / sigma_det;
         }
 
 
     };
-
-
-
 
     //main stuff, mostly ROS
     ros::Subscriber rgb_subscriber;
@@ -77,7 +80,9 @@ private:
     std::vector<color_alg_params> models;
     void readModel(ros::NodeHandle n, std::string color_model_name, color_alg_params &cap);
 
-
+    //general algorithm parameters
+    int blur_size;
+    void readParameters(ros::NodeHandle n);
 
     //image processing
     //convert to RGB
@@ -85,6 +90,13 @@ private:
 
     //convert to rg_chromasity
     void rgb2rgChromasity(const cv::Mat& src, cv::Mat& output);
+
+    //calculate gaussian
+    void multiGaussian(const cv::Mat& src, cv::Mat& output, const color_alg_params &model);
+
+    //sorting contours
+    //note: has to be static. Else we get 200 lines of compile errors. Gotta love c++ compilers...
+    static bool contourSort(std::vector<cv::Point> c1, std::vector<cv::Point> c2);
 
 
 };

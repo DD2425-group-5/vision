@@ -1,0 +1,4 @@
+color_detection_params: {
+  blur_kernel_size : 11
+} 
+

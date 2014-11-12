@@ -12,3 +12,7 @@ catkin_package(
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
+
+add_executable(colorDetector src/colordetectionnode.cpp)
+target_link_libraries(colorDetector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(colorDetector ${catkin_EXPORTED_TARGETS})
