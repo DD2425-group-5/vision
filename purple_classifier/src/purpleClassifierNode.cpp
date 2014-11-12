@@ -255,7 +255,7 @@ void PurpleClassifierNode::update() {
     else
         biggest_contour_size = 0;
 
-    if(biggest_contour_size > 70 && biggest_contour_size < 2000)
+    if(biggest_contour_size > 50 && biggest_contour_size < 2000)
         ROS_INFO_STREAM("OBJECT DETECTED! contour size: " << biggest_contour_size);
     else
         ROS_INFO("NOPE");
@@ -329,13 +329,19 @@ void PurpleClassifierNode::update() {
 
     //minMaxIdx(gray, &min, &max);
 
-   // cv::imshow("thresh", thresh);
-    //cv::imshow("disc_image", gray);
-   // cv::imshow("contours", drawing);
+    cv::imshow("thresh", thresh);
+    cv::imshow("disc_image", gray);
+
+
+    //cv::Mat original_bgr;
+    //cv_ptr->image.convertTo(original_bgr,CV_BGR8);
+
+
+    //cv::imshow("original", original_bgr);
     //cv::imshow("binary", binary);
 
     //cv::imshow("discImage", disc_image);
-    //cv::waitKey(3);
+    cv::waitKey(3);
 
 }
 
@@ -411,9 +417,9 @@ ros::NodeHandle PurpleClassifierNode::nodeSetup(int argc, char* argv[]) {
             //ModelParams("purple_cross",84.98,60.64,84.17,17.36,21.10,18.77);
     //disc_image = cv::Mat::zeros(480,640,CV_32F);
 
-    //cv::namedWindow("thresh",CV_WINDOW_AUTOSIZE );
-    //cv::namedWindow("disc_image", CV_WINDOW_AUTOSIZE);
-    //cv::namedWindow("contours", CV_WINDOW_AUTOSIZE);
+    cv::namedWindow("thresh",CV_WINDOW_AUTOSIZE );
+    cv::namedWindow("disc_image", CV_WINDOW_AUTOSIZE);
+    //cv::namedWindow("original", CV_WINDOW_AUTOSIZE);
     //cv::namedWindow("binary", CV_WINDOW_AUTOSIZE);
 
     t_rgb = ros::Time::now();
