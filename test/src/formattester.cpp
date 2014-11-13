@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
 
   //ros::Subscriber subd = n.subscribe("/camera/depth/image_rect", 1000, depthCallback);
-  ros::Subscriber subi = n.subscribe("/camera/depth/image_rect", 1000, imageCallback);
+  ros::Subscriber subi = n.subscribe("/camera/rgb/image_rect_color", 1000, imageCallback);
 
   ros::spin();
 

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>blobdetection</name>
+  <name>purple_classifier</name>
   <version>0.0.0</version>
-  <description>The blobdetection package</description>
+  <description>The purple_classifier package</description>
 
   <maintainer email="dmitrijl@kth.se">dmitrij</maintainer>
 
@@ -20,12 +20,11 @@
   <build_depend>opencv2</build_depend>
   <run_depend>opencv2</run_depend>  
   <build_depend>cv_bridge</build_depend>
-  <run_depend>cv_bridge</run_depend>  
-  <build_depend>message_generation</build_depend>
-  <run_depend>message_runtime</run_depend>  
+  <run_depend>cv_bridge</run_depend>
   <build_depend>rosutil</build_depend>
   <run_depend>rosutil</run_depend>  
-
+  <build_depend>visionutil</build_depend>
+  <run_depend>visionutil</run_depend>  
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

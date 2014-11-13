@@ -1,30 +1,26 @@
 <?xml version="1.0"?>
 <package>
-  <name>blobdetection</name>
+  <name>object_lib</name>
   <version>0.0.0</version>
-  <description>The blobdetection package</description>
-
-  <maintainer email="dmitrijl@kth.se">dmitrij</maintainer>
-
+  <description>Package for working with object descriptions</description>
+  <maintainer email="michalst@kth.se">Michal Staniaszek</maintainer>
   <license>BSD</license>
 
-  <author email="dmitrijl@kth.se">Dmitrij Lioubartsev</author>
+  <author email="michalst@kth.se">Michal Staniaszek</author>
   
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <run_depend>roscpp</run_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <build_depend>image_transport</build_depend>
-  <run_depend>image_transport</run_depend>
   <build_depend>opencv2</build_depend>
   <run_depend>opencv2</run_depend>  
+  <build_depend>sysutil</build_depend>
+  <run_depend>sysutil</run_depend>  
+  <build_depend>image_transport</build_depend>
+  <run_depend>image_transport</run_depend>  
   <build_depend>cv_bridge</build_depend>
   <run_depend>cv_bridge</run_depend>  
-  <build_depend>message_generation</build_depend>
-  <run_depend>message_runtime</run_depend>  
-  <build_depend>rosutil</build_depend>
-  <run_depend>rosutil</run_depend>  
+  <build_depend>sensor_msgs</build_depend>
+  <run_depend>sensor_msgs</run_depend>  
 
 
   <!-- The export tag contains other, unspecified, tags -->

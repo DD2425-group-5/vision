@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <iostream>
 #include <blobdetection/depth_point.h>
+#include <rosutil/rosutil.hpp>
 
 using namespace cv;
 
@@ -75,6 +76,5 @@ private:
     bool drawImages;
     bool debugMessages;
 
-    ros::NodeHandle nodeSetup(int argc, char* argv[]);
-    void runNode(ros::NodeHandle handle);
+    void runNode();
 };

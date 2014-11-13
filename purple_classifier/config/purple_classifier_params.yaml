@@ -1,0 +1,10 @@
+purple_classifier_params: {
+  rgb_sum_thresh_max : 700,
+  rgb_sum_thresh_min : 100,
+  blur_kernel_size : 11,
+  lines_col : 20,
+  lines_row : 20,
+  thresh_col : 10,
+  thresh_row : 10
+} 
+
