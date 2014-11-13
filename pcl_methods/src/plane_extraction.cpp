@@ -1,7 +1,5 @@
 #include "plane_extraction.hpp"
 
-#include <visualization_msgs/Marker.h>
-
 ros::Publisher noplane;
 ros::Publisher plane;
 ros::Publisher exobj;
@@ -20,7 +18,9 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     // extract the plane from msg - plane points are removed from msg, present in domPlane
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr domPlane = extractDominantPlane(msg, coefficients, 0.02);
-
+    
+    pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
+    
     noplane.publish(msg);
     plane.publish(domPlane);
 
@@ -141,15 +141,15 @@ pcl::PointCloud<pcl::PointXYZRGB> boundBoxPointCloud(CloudBounds<pcl::PointXYZRG
 }
 
 int main (int argc, char* argv[]) {
-    ros::init(argc, argv, "pcl_test");
+    ros::init(argc, argv, "plane_extraction");
     ros::NodeHandle handle;
     
     ros::Subscriber depth_cloud = handle.subscribe("/camera/depth_registered/points", 1, pcl_callback);
     // publish a ROS type - can automatically convert from the PCL type
-    noplane = handle.advertise<sensor_msgs::PointCloud2>("/pcl_test/plane_removed", 10);
-    plane = handle.advertise<sensor_msgs::PointCloud2>("/pcl_test/extracted_plane", 10);
-    exobj = handle.advertise<sensor_msgs::PointCloud2>("/pcl_test/objects_plane", 10);
-    bbox = handle.advertise<sensor_msgs::PointCloud2>("/pcl_test/bbox", 10);
+    noplane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed", 10);
+    plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
+    exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
+    bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
     
     ros::Rate loop_rate(10);
     while (ros::ok()){
