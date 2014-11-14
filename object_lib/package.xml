@@ -21,7 +21,12 @@
   <run_depend>cv_bridge</run_depend>  
   <build_depend>sensor_msgs</build_depend>
   <run_depend>sensor_msgs</run_depend>  
-
+  <build_depend>sysutil</build_depend>
+  <run_depend>sysutil</run_depend>
+  <run_depend>visionutil</run_depend>
+  <build_depend>visionutil</build_depend>
+  <build_depend>rosutil</build_depend>
+  <run_depend>rosutil</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
