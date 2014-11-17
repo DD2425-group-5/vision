@@ -4,6 +4,7 @@ ros::Publisher noplane;
 ros::Publisher plane;
 ros::Publisher exobj;
 ros::Publisher bbox;
+ros::Publisher coeffs;
 
 using namespace PCLUtil;
 
@@ -24,6 +25,10 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     noplane.publish(msg);
     plane.publish(domPlane);
 
+    pcl_msgs::ModelCoefficients ros_coefficients;
+    pcl_conversions::fromPCL(*coefficients, ros_coefficients);
+    coeffs.publish(ros_coefficients);
+
     
     // get the bounds of the plane
     CloudBounds<pcl::PointXYZRGB> domBounds = getCloudBounds<pcl::PointXYZRGB>(domPlane);
@@ -35,6 +40,11 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::PointCloud<pcl::PointXYZRGB> onPlanePoints = getPointsInBounds(scaledBounds, msg, coefficients);
 
     exobj.publish(onPlanePoints);
+
+    //TODO since we allocate memory with new, we need to delete it as well?
+    //delete coefficients;
+    //delete tmp;
+
 }
 
 /**
@@ -150,6 +160,7 @@ int main (int argc, char* argv[]) {
     plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
     exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
     bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
+    coeffs = handle.advertise<pcl_msgs::ModelCoefficients>("/plane_extraction/plane_coefficients",10);
     
     ros::Rate loop_rate(10);
     while (ros::ok()){
