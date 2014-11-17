@@ -1,4 +1,8 @@
 #include "colordetectionnode.hpp"
+
+const int ColorDetectionNode::numColors = 6;
+const std::string ColorDetectionNode::colors[] = {"blue","green","red","yellow","orange","purple"};
+
 void ColorDetectionNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     t_rgb = ros::Time::now();
     camera_img_raw = msg;
@@ -14,6 +18,22 @@ cv_bridge::CvImagePtr ColorDetectionNode::convertImage() {
         return cv_ptr;
     }
     return cv_ptr;
+}
+
+/**
+Scales all values to between 0 and 1. Used for drawing a float image.
+*/
+void ColorDetectionNode::scaleImage(const cv::Mat& img, cv::Mat& output) {
+    double min,max;
+    output = cv::Mat::zeros(img.rows, img.cols, CV_32F);
+    cv::minMaxIdx(img, &min, &max);
+
+    //float maxm = max - min;
+    for (int row = 0; row < output.rows; row++) {
+        for (int col = 0; col < output.cols; col++) {
+            output.at<float>(row, col) = (img.at<float>(row, col) - min)/max;
+        }
+    }
 }
 
 /**
@@ -160,14 +180,46 @@ void ColorDetectionNode::update() {
         else
             biggest_contours[i] = 0;
 
-        if(i == 5) {
-            ROS_INFO_STREAM("Contour size of model index " << 5 << ": " << biggest_contours[5]);
-            cv::imshow("thresh", thresh);
-            cv::waitKey(3);
+        //if(i == 0) {
+            //cv::Mat scaled_img;
+            //scaleImage(gauss_img,scaled_img);
+            //cv::imshow(colors[i],scaled_img);
+
+        if(i==4) {
+            cv::imshow(colors[i],thresh);
+            ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
+            //cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
+            //cv::drawContours(cont_img,contours,-1,(0,255,0),3);
+            //cv2.drawContours(img, [cnt], 0, (0,255,0), 3)
+            cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_32F);
+            //for(int j = 0; j < contours.size(); ++j) {
+            int j = 0;
+            if(contours.size() > 0)
+                for(int k = 0; k < contours[j].size(); ++k) {
+                    cont_img.at<float>(contours[j][k].y, contours[j][k].x) = 1;
+                }
+            //}
+
+            cv::imshow("contours", cont_img);
+            /*if(contours.size() > 0 && contours[0].size() < 100) {
+                for(int k = 0; k < contours[0].size(); ++k) {
+                    ROS_INFO_STREAM("(" << contours[0][k].y << "," << contours[0][k].x << ")");
+                    //cont_img.at<float>(contours[j][k].y, contours[j][k].y) = 1;
+                }
+            }*/
         }
 
-    }
 
+        //}
+
+
+        //cv::imshow("thresh", thresh);
+
+
+
+    }
+    cv::waitKey(3);
+    //ROS_INFO("ROUND");
 
 
     //create msg
@@ -280,11 +332,8 @@ ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
     ros::NodeHandle handle;
 
     //read and store models
-    //TODO: for now only reads purple
-    const int num_colors = 6;
-    std::string colors[num_colors] = {"blue","green","red","yellow","orange","purple"};
 
-    for(int i = 0; i < num_colors; ++i) {
+    for(int i = 0; i < numColors; ++i) {
         color_alg_params cap;
         readModel(handle,colors[i],cap);
         models.push_back(cap);

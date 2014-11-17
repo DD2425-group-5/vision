@@ -22,7 +22,8 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include <opencv/highgui.h>
+//#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 //util
 #include <visionutil/visionmodels.hpp>
@@ -118,6 +119,12 @@ private:
     //note: has to be static. Else we get 200 lines of compile errors. Gotta love c++ compilers...
     static bool contourSort(std::vector<cv::Point> c1, std::vector<cv::Point> c2);
 
+    //for debugging purposes
+    void scaleImage(const cv::Mat& img, cv::Mat& output);
+
+    const static int numColors;
+    const static std::string colors[];
+ //= {"blue","green","red","yellow","orange","purple"}
 
 };
 
