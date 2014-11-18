@@ -40,7 +40,6 @@ private:
     int streamRate;
     std::string outDir;
     std::string topic;
-    time_t rawTime;
 
     void bgr2rgb(cv_bridge::CvImagePtr cv_ptr);
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);

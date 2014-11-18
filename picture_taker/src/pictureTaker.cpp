@@ -53,18 +53,13 @@ void PictureTakerNode::bgr2rgb(cv_bridge::CvImagePtr cv_ptr) {
 void PictureTakerNode::savePicture() {
     cv_bridge::CvImagePtr cv_ptr = convertImage();
 
-    time(&rawTime);
-    struct tm* timeinfo;
-    char fname[100];
-    // get the current time
-    timeinfo = localtime(&rawTime);
-    // put it into a useful format
-    strftime(fname, 100, "img_%F_%T_", timeinfo);
-    
+    std::string time = SysUtil::getDateTimeString();
     unsigned long nsec = ros::Time::now().toNSec();
     std::stringstream ss;
     ss << SysUtil::fullDirPath(outDir);
-    ss << fname;
+    ss << "img_";
+    ss << time;
+    ss << "_";
     ss << nsec;
     ss << ".jpg";
     std::string out = ss.str();
