@@ -5,12 +5,102 @@ void CubeIdentifierNode::coeffsCallback(const pcl_msgs::ModelCoefficients::Const
     p_coeff = msg;
 }
 
-void CubeIdentifierNode::pcCallback(const sensor_msgs::PointCloud2::ConstPtr &msg) {
+void CubeIdentifierNode::pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg) {
     t_pc = ros::Time::now();
     p_pc = msg;
 }
 
+bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other) {
+    float ux,uy,uz,vx,vy,vz;
+    if(other.normal_y < 0) {
+        vx = -other.normal_x;
+        vy = -other.normal_y;
+        vz = -other.normal_z;
+    } else {
+        vx = other.normal_x;
+        vy = other.normal_y;
+        vz = other.normal_z;
+    }
+    ux = reference.normal_x;
+    uy = reference.normal_y;
+    uz = reference.normal_z;
+
+
+
+    float top = ux*vx+uy*vy+uz*vz;
+    float bot = std::sqrt(ux*ux+uy*uy+uz*uz)*std::sqrt(vx*vx+vy*vy+vz*vz);
+    float angle = std::acos(top/bot);
+    float indegrees = (angle*180)/M_PI;
+
+    return indegrees < 5;
+
+
+    //return refSquared
+
+
+    /*
+    if(std::abs(reference.normal_x-x_other) < thresh &&
+       std::abs(reference.normal_z-z_other) < thresh)
+        return true;
+*/
+    //return false; //TODO
+}
+
 void CubeIdentifierNode::update() {
+    if((ros::Time::now()-t_coeff).toSec()>1.0) {
+        return;
+    }
+    if((ros::Time::now()-t_pc).toSec()>1.0) {
+        return;
+    }
+
+    pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
+    //pcl::PointCloud& pc = *p_pc;
+
+    //make sure the normal points up.
+    if(normal.normal_y < 0) {
+        normal.normal_x = -normal.normal_x;
+        normal.normal_y = -normal.normal_y;
+        normal.normal_z = -normal.normal_z;
+    }
+
+
+
+
+
+    pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+    ne.setInputCloud (p_pc);
+
+    // Create an empty kdtree representation, and pass it to the normal estimation object.
+    // Its content will be filled inside the object, based on the given input dataset
+    // (as no other search surface is given).
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+    ne.setSearchMethod (tree);
+
+    // Output datasets
+    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+
+
+    // Use all neighbors in a sphere of radius 2cm
+    ne.setRadiusSearch (0.02);
+
+    // Compute the features
+    ne.compute (*cloud_normals);
+
+    int numClose = 0;
+    for(int i = 0; i < cloud_normals->size(); ++i) {
+        if(closeEnough(normal,(*cloud_normals)[i])) {
+            ++numClose;
+        }
+    }
+    ROS_INFO_STREAM("NUM CLOSE: " << numClose);
+
+    //if(numClose > 1000)
+     //  ROS_INFO("SUSPECTING WE GOT A CUBE...");
+
+
+    //ROS_INFO_STREAM("Num point input: " << p_pc->size() << " normals: " << cloud_normals->size());
+
 
 }
 
