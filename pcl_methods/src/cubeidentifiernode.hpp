@@ -13,6 +13,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <rosutil/rosutil.hpp>
+
 class CubeIdentifierNode {
 public:
     void update();
@@ -25,6 +27,8 @@ private:
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
 
+    void readParams(ros::NodeHandle& n);
+
     //callbacks
     void pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
     void coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg);
@@ -36,7 +40,16 @@ private:
 
     //main algorithms
     //see if a normal is close enough to plane:
-    bool closeEnough(const pcl::Normal& reference, const pcl::Normal& other);
+    bool closeEnough(const pcl::Normal& reference, const pcl::Normal& other, float min_thresh);
+
+    //parameters
+    float theta;
+    float distance_search_radius;
+    int num_similar_vectors_thresh;
+
+    //for optimizations
+    float close_enough_thresh;
+
 
 
 

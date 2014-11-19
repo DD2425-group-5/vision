@@ -10,7 +10,20 @@ void CubeIdentifierNode::pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr
     p_pc = msg;
 }
 
-bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other) {
+void CubeIdentifierNode::readParams(ros::NodeHandle& n) {
+
+    ROSUtil::getParam(n, "cube_identifier_params/theta", theta);
+    ROSUtil::getParam(n, "cube_identifier_params/search_radius", distance_search_radius);
+    ROSUtil::getParam(n, "cube_identifier_params/num_vectors", num_similar_vectors_thresh);
+
+    ROS_INFO("Successfully read params in cube_identifier.");
+    ROS_INFO_STREAM("Theta: " << theta);
+    ROS_INFO_STREAM("Distanse search radius: " << distance_search_radius);
+    ROS_INFO_STREAM("Numbers of parallel vectors needed: " << num_similar_vectors_thresh);
+}
+
+bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other,
+                                     float min_thresh) {
     float ux,uy,uz,vx,vy,vz;
     if(other.normal_y < 0) {
         vx = -other.normal_x;
@@ -25,15 +38,19 @@ bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::No
     uy = reference.normal_y;
     uz = reference.normal_z;
 
+    float top = ux*vx+uy*vy+uz*vz;
+    float bot = std::sqrt(vx*vx+vy*vy+vz*vz);
+    return ((top/bot) >= min_thresh);
 
 
+/*
     float top = ux*vx+uy*vy+uz*vz;
     float bot = std::sqrt(ux*ux+uy*uy+uz*uz)*std::sqrt(vx*vx+vy*vy+vz*vz);
     float angle = std::acos(top/bot);
     float indegrees = (angle*180)/M_PI;
 
     return indegrees < 5;
-
+*/
 
     //return refSquared
 
@@ -64,10 +81,6 @@ void CubeIdentifierNode::update() {
         normal.normal_z = -normal.normal_z;
     }
 
-
-
-
-
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
     ne.setInputCloud (p_pc);
 
@@ -82,14 +95,19 @@ void CubeIdentifierNode::update() {
 
 
     // Use all neighbors in a sphere of radius 2cm
-    ne.setRadiusSearch (0.02);
+    ne.setRadiusSearch (distance_search_radius);
 
     // Compute the features
     ne.compute (*cloud_normals);
 
+    float min_thresh = close_enough_thresh *
+            std::sqrt(std::pow(normal.normal_x,2)+
+                      std::pow(normal.normal_y,2)+
+                      std::pow(normal.normal_z,2));
+
     int numClose = 0;
     for(int i = 0; i < cloud_normals->size(); ++i) {
-        if(closeEnough(normal,(*cloud_normals)[i])) {
+        if(closeEnough(normal,(*cloud_normals)[i],min_thresh)) {
             ++numClose;
         }
     }
@@ -107,6 +125,12 @@ void CubeIdentifierNode::update() {
 ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     ros::init(argc, argv, "CubeIdentifier");
     ros::NodeHandle handle;
+
+    readParams(handle);
+
+    close_enough_thresh = std::cos((theta*M_PI) / 180);
+
+
 
     pc_subscriber = handle.subscribe("/plane_extraction/plane_removed", 1,
                                          &CubeIdentifierNode::pcCallback, this);
