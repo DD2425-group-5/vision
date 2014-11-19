@@ -1,0 +1,9 @@
+<launch>
+
+  <include file="$(find openni2_launch)/launch/openni2.launch" />
+  <include file="$(find color_datection)/launch/colorDetector.launch" />
+  <include file="$(find pcl_methods)/launch/cube_identifier.launch " />
+
+
+  <node name="visionMaster" pkg="vision_master" type="visionMaster" output="screen" />
+</launch>
