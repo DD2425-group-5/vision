@@ -1,9 +1,9 @@
 #include "plane_extraction.hpp"
 
 ros::Publisher noplane;
-ros::Publisher plane;
-ros::Publisher exobj;
-ros::Publisher bbox;
+//ros::Publisher plane;
+//ros::Publisher exobj;
+//ros::Publisher bbox;
 ros::Publisher coeffs;
 
 using namespace PCLUtil;
@@ -23,7 +23,7 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
     
     noplane.publish(msg);
-    plane.publish(domPlane);
+    //plane.publish(domPlane);
 
     pcl_msgs::ModelCoefficients ros_coefficients;
     pcl_conversions::fromPCL(*coefficients, ros_coefficients);
@@ -31,6 +31,7 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
 
     
     // get the bounds of the plane
+    /*
     CloudBounds<pcl::PointXYZRGB> domBounds = getCloudBounds<pcl::PointXYZRGB>(domPlane);
     printBounds(domBounds);
     CloudBounds<pcl::PointXYZRGB> scaledBounds = scaleBounds(domBounds, 0.8);
@@ -40,7 +41,7 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::PointCloud<pcl::PointXYZRGB> onPlanePoints = getPointsInBounds(scaledBounds, msg, coefficients);
 
     exobj.publish(onPlanePoints);
-
+*/
     //TODO since we allocate memory with new, we need to delete it as well?
     //delete coefficients;
     //delete tmp;
@@ -157,9 +158,9 @@ int main (int argc, char* argv[]) {
     ros::Subscriber depth_cloud = handle.subscribe("/camera/depth_registered/points", 1, pcl_callback);
     // publish a ROS type - can automatically convert from the PCL type
     noplane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed", 10);
-    plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
-    exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
-    bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
+    //plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
+    //exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
+    //bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
     coeffs = handle.advertise<pcl_msgs::ModelCoefficients>("/plane_extraction/plane_coefficients",10);
     
     ros::Rate loop_rate(10);
