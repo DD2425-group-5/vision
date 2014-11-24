@@ -2,12 +2,21 @@ cmake_minimum_required(VERSION 2.8.3)
 project(vision_master)
 
 
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs color_detection)# ras_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs message_generation color_detection
+    visionutil rosutil)# ras_msgs)
 #find_package( REQUIRED COMPONENTS)
 
-catkin_package(
+add_message_files(
+  DIRECTORY msg
+  FILES
+    object_found.msg
 )
 
+generate_messages(DEPENDENCIES std_msgs)
+
+catkin_package(
+  CATKIN_DEPENDS message_runtime
+)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 

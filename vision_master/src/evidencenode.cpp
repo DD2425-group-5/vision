@@ -1,14 +1,14 @@
 #include "evidencenode.hpp"
 
-void EvidenceNode::objectCallback(const std_msgs::String::ConstPtr &msg) {
-    speak(msg->data);
+void EvidenceNode::objectCallback(const vision_master::object_found::ConstPtr &msg) {
+    speak(msg->id);
     
     //send message to /evidence
     ras_msgs::RAS_Evidence ev_msg;
     ev_msg.stamp = ros::Time::now();
     ev_msg.group_number = 5;
     ev_msg.image_evidence = *camera_img_raw;
-    ev_msg.object_id = msg->data;
+    ev_msg.object_id = msg->id;
     evidence_publisher.publish(ev_msg);
     
 }
