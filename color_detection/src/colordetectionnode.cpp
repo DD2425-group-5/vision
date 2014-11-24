@@ -196,9 +196,9 @@ void ColorDetectionNode::update() {
 
         if(i == 5) {
           //  cv::imshow(colors[i],thresh);
-            ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
-            ROS_INFO_STREAM("Contour center: (row: " << contour_centers[i].y << ", col: " << contour_centers[i].x);
-            ROS_INFO_STREAM("Depth there: " << getDepth(contour_centers[i].y, contour_centers[i].x));
+            //ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
+            //ROS_INFO_STREAM("Contour center: (row: " << contour_centers[i].y << ", col: " << contour_centers[i].x);
+            //ROS_INFO_STREAM("Depth there: " << getDepth(contour_centers[i].y, contour_centers[i].x));
             /*//cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
             //cv::drawContours(cont_img,contours,-1,(0,255,0),3);
             //cv2.drawContours(img, [cnt], 0, (0,255,0), 3)

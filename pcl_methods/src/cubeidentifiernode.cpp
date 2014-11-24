@@ -104,7 +104,7 @@ void CubeIdentifierNode::update() {
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
     ne.setInputCloud (down_sampled);
-    ROS_INFO_STREAM("SIZE BEFORE DOWNSAMPLING: " << p_pc->size() << " AFTER: " << down_sampled->size());
+    //ROS_INFO_STREAM("SIZE BEFORE DOWNSAMPLING: " << p_pc->size() << " AFTER: " << down_sampled->size());
 
     //ROS_INFO("INITTED NORMAL ESTIMATION");
 
@@ -147,7 +147,7 @@ void CubeIdentifierNode::update() {
         }
     }
 
-    ROS_INFO_STREAM("NUM CLOSE: " << numClose);
+    //ROS_INFO_STREAM("NUM CLOSE: " << numClose);
 
     if(numClose >= num_similar_vectors_thresh) {
         msg.data = true;

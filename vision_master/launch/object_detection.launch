@@ -1,4 +1,5 @@
 <launch>
+  <rosparam file="$(find project_launch)/config/global_params.yaml" command="load" />
 
   <include file="$(find openni2_launch)/launch/openni2.launch" />
   <include file="$(find color_detection)/launch/colorDetector.launch" />
