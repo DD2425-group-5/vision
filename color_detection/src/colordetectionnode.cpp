@@ -185,10 +185,10 @@ void ColorDetectionNode::update() {
             //scaleImage(gauss_img,scaled_img);
             //cv::imshow(colors[i],scaled_img);
 
-        if(i==4) {
-            cv::imshow(colors[i],thresh);
+        //if(true) {
+          //  cv::imshow(colors[i],thresh);
             ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
-            //cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
+            /*//cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
             //cv::drawContours(cont_img,contours,-1,(0,255,0),3);
             //cv2.drawContours(img, [cnt], 0, (0,255,0), 3)
             cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_32F);
@@ -200,14 +200,14 @@ void ColorDetectionNode::update() {
                 }
             //}
 
-            cv::imshow("contours", cont_img);
+            cv::imshow("contours", cont_img);*/
             /*if(contours.size() > 0 && contours[0].size() < 100) {
                 for(int k = 0; k < contours[0].size(); ++k) {
                     ROS_INFO_STREAM("(" << contours[0][k].y << "," << contours[0][k].x << ")");
                     //cont_img.at<float>(contours[j][k].y, contours[j][k].y) = 1;
                 }
             }*/
-        }
+        //}
 
 
         //}
@@ -218,7 +218,7 @@ void ColorDetectionNode::update() {
 
 
     }
-    cv::waitKey(3);
+    //cv::waitKey(3);
     //ROS_INFO("ROUND");
 
 
