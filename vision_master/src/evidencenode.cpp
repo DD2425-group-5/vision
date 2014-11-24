@@ -13,7 +13,7 @@ void EvidenceNode::objectCallback(const std_msgs::String::ConstPtr &msg) {
     
 }
 
-void ColorDetectionNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
+void EvidenceNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     t_rgb = ros::Time::now();
     camera_img_raw = msg;
 }
@@ -27,7 +27,7 @@ void EvidenceNode::speak(std::string object_id) {
 }
 
 EvidenceNode::EvidenceNode(int argc, char* argv[]) {
-	ros::init(argc, argv, "Evidence");
+    ros::init(argc, argv, "evidence");
 	ros::NodeHandle handle;
     object_subscriber = handle.subscribe("/vision/detection", 10, &EvidenceNode::objectCallback, this);
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &EvidenceNode::rgbCallback, this);

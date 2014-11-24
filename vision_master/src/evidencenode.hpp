@@ -6,6 +6,8 @@
 #include <sensor_msgs/Image.h>
 #include <ras_msgs/RAS_Evidence.h>
 
+//#include <r
+
 
 //std
 #include <vector>
@@ -26,7 +28,7 @@ public:
 private:
 
     //ros stuff
-    void objectCallback(const std_msgs::string::ConstPtr &msg);
+    void objectCallback(const std_msgs::String::ConstPtr &msg);
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     sensor_msgs::Image::ConstPtr camera_img_raw;
     ros::Time t_rgb;
