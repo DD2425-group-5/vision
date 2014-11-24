@@ -7,6 +7,7 @@
 
 //own message
 #include <color_detection/colors_detected.h>
+#include <color_detection/color_status.h>
 
 //std
 #include <vector>
@@ -124,6 +125,10 @@ private:
 
     const static int numColors;
     const static std::string colors[];
+
+    //messages
+    color_detection::color_status getNewColorStatus();
+
  //= {"blue","green","red","yellow","orange","purple"}
 
 };

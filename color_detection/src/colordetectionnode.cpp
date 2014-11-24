@@ -154,6 +154,7 @@ void ColorDetectionNode::update() {
 
     //calculate contours for each model
     std::vector<int> biggest_contours(models.size());
+    std::vector<cv::Point2i> contour_centers(models.size());
     for(int i = 0; i < models.size(); ++i) {
         //calculate gaussian values
         cv::Mat gauss_img;
@@ -175,19 +176,24 @@ void ColorDetectionNode::update() {
         std::sort(contours.begin(), contours.end(), &ColorDetectionNode::contourSort);
 
         //save biggest contour size
-        if(contours.size() > 0)
+        if(contours.size() > 0) {
             biggest_contours[i] = contours[0].size();
-        else
+            cv::Scalar means = cv::mean(contours[0]);
+            contour_centers[i] = cv::Point2i((int) means[0],(int) means[1]);
+        } else {
             biggest_contours[i] = 0;
+        }
+
 
         //if(i == 0) {
             //cv::Mat scaled_img;
             //scaleImage(gauss_img,scaled_img);
             //cv::imshow(colors[i],scaled_img);
 
-        //if(true) {
+        if(i == 5) {
           //  cv::imshow(colors[i],thresh);
             ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
+            ROS_INFO_STREAM("Contour center: (row: " << contour_centers[i].y << ", col: " << contour_centers[i].x);
             /*//cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
             //cv::drawContours(cont_img,contours,-1,(0,255,0),3);
             //cv2.drawContours(img, [cnt], 0, (0,255,0), 3)
@@ -207,7 +213,7 @@ void ColorDetectionNode::update() {
                     //cont_img.at<float>(contours[j][k].y, contours[j][k].y) = 1;
                 }
             }*/
-        //}
+        }
 
 
         //}
@@ -224,20 +230,50 @@ void ColorDetectionNode::update() {
 
     //create msg
     color_detection::colors_detected msg;
+    msg.blue = getNewColorStatus();
+    msg.green = getNewColorStatus();
+    msg.red = getNewColorStatus();
+    msg.yellow = getNewColorStatus();
+    msg.orange = getNewColorStatus();
+    msg.purple = getNewColorStatus();
 
     //classify
-    if(biggest_contours[0] >= models[0].min_contour_size)
-        msg.blue = true;
-    if(biggest_contours[1] >= models[1].min_contour_size)
-        msg.green = true;
-    if(biggest_contours[2] >= models[2].min_contour_size)
-        msg.red = true;
-    if(biggest_contours[3] >= models[3].min_contour_size)
-        msg.yellow = true;
-    if(biggest_contours[4] >= models[4].min_contour_size)
-        msg.orange = true;
-    if(biggest_contours[5] >= models[5].min_contour_size)
-        msg.purple = true;
+    if(biggest_contours[0] >= models[0].min_contour_size) {
+        msg.blue.found = true;
+        msg.blue.col = contour_centers[0].x;
+        msg.blue.row = contour_centers[0].y;
+    }
+
+    if(biggest_contours[1] >= models[1].min_contour_size) {
+        msg.green.found = true;
+        msg.green.col = contour_centers[1].x;
+        msg.green.row = contour_centers[1].y;
+    }
+
+    if(biggest_contours[2] >= models[2].min_contour_size) {
+        msg.red.found = true;
+        msg.red.col = contour_centers[2].x;
+        msg.red.row = contour_centers[2].y;
+    }
+
+    if(biggest_contours[3] >= models[3].min_contour_size) {
+        msg.yellow.found = true;
+        msg.yellow.col = contour_centers[3].x;
+        msg.yellow.row = contour_centers[3].y;
+    }
+
+    if(biggest_contours[4] >= models[4].min_contour_size) {
+        msg.orange.found = true;
+        msg.orange.col = contour_centers[4].x;
+        msg.orange.row = contour_centers[4].y;
+    }
+
+    if(biggest_contours[5] >= models[5].min_contour_size) {
+        msg.purple.found = true;
+        msg.purple.col = contour_centers[5].x;
+        msg.purple.row = contour_centers[5].y;
+    }
+
 
     //publish message
     classifier_publisher.publish(msg);
@@ -253,6 +289,14 @@ void ColorDetectionNode::update() {
 
 
 
+}
+
+color_detection::color_status ColorDetectionNode::getNewColorStatus() {
+    color_detection::color_status status;
+    status.found = false;
+    status.col = -1;
+    status.row = -1;
+    return status;
 }
 
 /**

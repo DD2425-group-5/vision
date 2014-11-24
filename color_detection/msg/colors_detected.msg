@@ -1,8 +1,7 @@
-bool blue
-bool green
-bool red
-bool yellow
-bool orange
-bool purple
-bool extra1
-bool extra2
+color_status blue
+color_status green
+color_status red
+color_status yellow
+color_status orange
+color_status purple
+

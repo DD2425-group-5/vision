@@ -5,6 +5,8 @@
 
 //messages
 #include <color_detection/colors_detected.h>
+#include <color_detection/color_status.h>
+
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 

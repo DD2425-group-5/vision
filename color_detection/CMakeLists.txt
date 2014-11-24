@@ -7,9 +7,10 @@ find_package(OpenCV REQUIRED)
 
 add_message_files( FILES
   colors_detected.msg
+  color_status.msg
 )
 
-generate_messages(DEPENDENCIES std_msgs)
+generate_messages(DEPENDENCIES std_msgs) # color_detection)
 
 catkin_package(
 #  INCLUDE_DIRS include

@@ -2,12 +2,12 @@
 
 void VisionMasterNode::colorCallback(const color_detection::colors_detected::ConstPtr &msg) {
     t_color = ros::Time::now();
-    colors_found[0] = msg->blue;
-    colors_found[1] = msg->green;
-    colors_found[2] = msg->red;
-    colors_found[3] = msg->yellow;
-    colors_found[4] = msg->orange;
-    colors_found[5] = msg->purple;
+    colors_found[0] = msg->blue.found;
+    colors_found[1] = msg->green.found;
+    colors_found[2] = msg->red.found;
+    colors_found[3] = msg->yellow.found;
+    colors_found[4] = msg->orange.found;
+    colors_found[5] = msg->purple.found;
 }
 
 void VisionMasterNode::depthCallback(const std_msgs::Bool::ConstPtr &msg) {
