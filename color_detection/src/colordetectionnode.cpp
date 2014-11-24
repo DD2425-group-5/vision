@@ -350,7 +350,7 @@ color_detection::color_status ColorDetectionNode::getNewColorStatus() {
     status.found = false;
     status.col = -1;
     status.row = -1;
-    status.depth = 0.0f;
+    status.depth = -1.0f;
     return status;
 }
 
