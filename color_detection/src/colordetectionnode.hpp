@@ -89,11 +89,14 @@ private:
 
     //main stuff, mostly ROS
     ros::Subscriber rgb_subscriber;
+    ros::Subscriber depth_subscriber;
     ros::Publisher classifier_publisher;
     ros::Time t_rgb;
     sensor_msgs::Image::ConstPtr camera_img_raw;
+    sensor_msgs::Image::ConstPtr camera_depth_raw;
 
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
+    void depthCallback(const sensor_msgs::Image::ConstPtr &msg);
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     void runNode(ros::NodeHandle handle);
     void update();
@@ -108,7 +111,7 @@ private:
 
     //image processing
     //convert to RGB
-    cv_bridge::CvImagePtr convertImage();
+    cv_bridge::CvImagePtr convertImage(sensor_msgs::Image::ConstPtr img, const std::string& format);
 
     //convert to rg_chromasity
     void rgb2rgChromasity(const cv::Mat& src, cv::Mat& output);
@@ -128,6 +131,7 @@ private:
 
     //messages
     color_detection::color_status getNewColorStatus();
+    float getDepth(int row, int col);
 
  //= {"blue","green","red","yellow","orange","purple"}
 

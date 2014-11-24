@@ -8,10 +8,14 @@ void ColorDetectionNode::rgbCallback(const sensor_msgs::Image::ConstPtr &msg) {
     camera_img_raw = msg;
 }
 
-cv_bridge::CvImagePtr ColorDetectionNode::convertImage() {
+void ColorDetectionNode::depthCallback(const sensor_msgs::Image::ConstPtr &msg) {
+    camera_depth_raw = msg;
+}
+
+cv_bridge::CvImagePtr ColorDetectionNode::convertImage(sensor_msgs::Image::ConstPtr img, const std::string& format) {
     cv_bridge::CvImagePtr cv_ptr;
     try {
-        cv_ptr = cv_bridge::toCvCopy(camera_img_raw, sensor_msgs::image_encodings::RGB8);
+        cv_ptr = cv_bridge::toCvCopy(img, format);
     }
     catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -142,7 +146,7 @@ void ColorDetectionNode::update() {
     }
 
     //convert image to openCV image
-    cv_bridge::CvImagePtr cv_ptr = convertImage();
+    cv_bridge::CvImagePtr cv_ptr = convertImage(camera_img_raw, sensor_msgs::image_encodings::RGB8);
 
     //blur image
     cv::Mat blurred = cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC3);
@@ -194,6 +198,7 @@ void ColorDetectionNode::update() {
           //  cv::imshow(colors[i],thresh);
             ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
             ROS_INFO_STREAM("Contour center: (row: " << contour_centers[i].y << ", col: " << contour_centers[i].x);
+            ROS_INFO_STREAM("Depth there: " << getDepth(contour_centers[i].y, contour_centers[i].x));
             /*//cv::Mat cont_img = cv::Mat::zeros(gauss_img.rows,gauss_img.cols,CV_8UC3);
             //cv::drawContours(cont_img,contours,-1,(0,255,0),3);
             //cv2.drawContours(img, [cnt], 0, (0,255,0), 3)
@@ -242,36 +247,42 @@ void ColorDetectionNode::update() {
         msg.blue.found = true;
         msg.blue.col = contour_centers[0].x;
         msg.blue.row = contour_centers[0].y;
+        msg.blue.depth = getDepth(contour_centers[0].y,contour_centers[0].x);
     }
 
     if(biggest_contours[1] >= models[1].min_contour_size) {
         msg.green.found = true;
         msg.green.col = contour_centers[1].x;
         msg.green.row = contour_centers[1].y;
+        msg.green.depth = getDepth(contour_centers[1].y,contour_centers[1].x);
     }
 
     if(biggest_contours[2] >= models[2].min_contour_size) {
         msg.red.found = true;
         msg.red.col = contour_centers[2].x;
         msg.red.row = contour_centers[2].y;
+        msg.red.depth = getDepth(contour_centers[2].y,contour_centers[2].x);
     }
 
     if(biggest_contours[3] >= models[3].min_contour_size) {
         msg.yellow.found = true;
         msg.yellow.col = contour_centers[3].x;
         msg.yellow.row = contour_centers[3].y;
+        msg.yellow.depth = getDepth(contour_centers[3].y,contour_centers[3].x);
     }
 
     if(biggest_contours[4] >= models[4].min_contour_size) {
         msg.orange.found = true;
         msg.orange.col = contour_centers[4].x;
         msg.orange.row = contour_centers[4].y;
+        msg.orange.depth = getDepth(contour_centers[4].y,contour_centers[4].x);
     }
 
     if(biggest_contours[5] >= models[5].min_contour_size) {
         msg.purple.found = true;
         msg.purple.col = contour_centers[5].x;
         msg.purple.row = contour_centers[5].y;
+        msg.purple.depth = getDepth(contour_centers[5].y,contour_centers[5].x);
     }
 
 
@@ -285,17 +296,61 @@ void ColorDetectionNode::update() {
 
         //ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
     //}
-
-
-
-
 }
 
+/**
+Get the distance to the given point. If NaN, return -1.
+
+This code is pretty damn cryptic. At first the function returned dist
+immediatly after initializing it. However, I noticed it was NaN quite often,
+as the depth camera does not register all points all the time. So because of
+that I added some code to check the surroundings of the given point.
+
+NOTE: to check if a float f is NaN:
+if(f != f) {
+    //f is NaN
+}
+
+Basically:
+
+1. get depth at the (row,col) point.
+2. if NaN, iterate on points in a square around the middle, from row-thresh to row+thresh
+   and col-thresh to col+thresh. The first non-NaN value is returned.
+3. Two if-statements at the beginning of each loop check that we don't look out of bounds of the image.
+4. If still no non-NaN found, return -1.
+*/
+float ColorDetectionNode::getDepth(int row, int col) {
+    cv_bridge::CvImagePtr cv_ptr = convertImage(camera_depth_raw,sensor_msgs::image_encodings::TYPE_32FC1);
+    float dist = cv_ptr->image.at<float>(row,col);
+    if(dist != dist) {
+        //NaN check, if we get here dist is NaN
+        dist = -1;
+        int thresh = 3;
+        for(int i = -thresh; i <= thresh; ++i) {
+            if(i < 0 || i >= cv_ptr->image.rows)
+                continue;
+            for(int j = -thresh; j <= thresh; ++j) {
+                if(j < 0 || j >= cv_ptr->image.cols)
+                    continue;
+                float tmp = cv_ptr->image.at<float>(row+i,col+j);
+                if(!(tmp != tmp)) {
+                    return tmp;
+                }
+            }
+        }
+    }
+    return dist;
+}
+
+/**
+Returns a freshly initialized  color_status message object.
+*/
 color_detection::color_status ColorDetectionNode::getNewColorStatus() {
     color_detection::color_status status;
     status.found = false;
     status.col = -1;
     status.row = -1;
+    status.depth = 0.0f;
     return status;
 }
 
@@ -390,6 +445,7 @@ ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
     //general ros setup
     t_rgb = ros::Time::now();
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &ColorDetectionNode::rgbCallback, this);
+    depth_subscriber = handle.subscribe("/camera/depth/image_rect", 1, &ColorDetectionNode::depthCallback, this);
     classifier_publisher = handle.advertise<color_detection::colors_detected>("/vision/color_classifier", 1);
     return handle;
 }
