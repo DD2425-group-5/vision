@@ -37,6 +37,7 @@ void VisionMasterNode::update() {
 
     //basically go through each color and check if we see something.
 
+    /* BLUE */
     if(colors_found[0].found) {
         //sees something blue
         //do we see a cube?
@@ -176,12 +177,20 @@ std::vector<float> VisionMasterNode::getRelativePosition(
         int pixel_row, int pixel_col, float depth) {
 
     std::vector<float> p(2);
+    ROS_INFO_STREAM("pixel_row: " << pixel_row << " pixel_col: " << pixel_col << 
+                    "depth: " << depth);
+    
+    if(depth < 0) {
+        depth = 0.4;
+    }
 
     //float h_omega = camera_rotation_x - camera_res_h/2 + ((float)pixel_row)*(camera_fov_h/camera_res_h);
-    float w_omega = ((float) pixel_col)*(camera_fov_w/camera_res_w) - camera_res_w/2;
+    float w_omega = ((float) pixel_col)*(camera_fov_w/camera_res_w) - camera_fov_w/2;
     //h_omega = std::abs(h_omega);
     //float d_g = std::cos((h_omega*M_PI) / 180)*depth;
     float d_g = std::sqrt(std::pow(depth,2)-std::pow(camera_offset_z,2));
+    
+    ROS_INFO_STREAM("w_omega: " << w_omega << " d_g: " << d_g);
 
     w_omega = w_omega*(M_PI/180); //convert to radians
 
