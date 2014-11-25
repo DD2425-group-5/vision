@@ -31,6 +31,7 @@ public:
     ros::Subscriber color_subscriber;
     ros::Subscriber depth_subscriber;
     ros::Publisher master_publisher;
+    ros::Publisher hint_publisher;
 
     enum object_ids { Red_Cube,
                    Blue_Cube,
@@ -91,6 +92,11 @@ private:
     float camera_rotation_x;
     float camera_fov_h;
     float camera_fov_w;
+
+    //refinement
+    float max_detection_distance;
+    int edge_close_w;
+    int edge_close_h;
 
 };
 

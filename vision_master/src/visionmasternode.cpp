@@ -43,6 +43,7 @@ void VisionMasterNode::update() {
         //do we see a cube?
         if(cube_found) {
             occurances_in_a_row[1] += 1;
+            occurances_in_a_row[7] = -10;
             if(occurances_in_a_row[1] >= occurances_thresh)
                 found_this_round[1] = true;
         } else {
@@ -61,6 +62,7 @@ void VisionMasterNode::update() {
         //do we see a cube?
         if(cube_found) {
             occurances_in_a_row[2] += 1;
+            occurances_in_a_row[6] = -10;
             if(occurances_in_a_row[2] >= occurances_thresh)
                 found_this_round[2] = true;
         } else {
@@ -79,6 +81,7 @@ void VisionMasterNode::update() {
         //do we see a cube?
         if(cube_found) {
             occurances_in_a_row[0] += 1;
+            occurances_in_a_row[5] = -10;
             if(occurances_in_a_row[0] >= occurances_thresh)
                 found_this_round[0] = true;
         } else {
@@ -97,6 +100,7 @@ void VisionMasterNode::update() {
         //do we see a cube?
         if(cube_found) {
             occurances_in_a_row[3] += 1;
+            occurances_in_a_row[4] = -10;
             if(occurances_in_a_row[3] >= occurances_thresh)
                 found_this_round[3] = true;
         } else {
@@ -132,23 +136,42 @@ void VisionMasterNode::update() {
     for(int i = 0; i < found_this_round.size(); ++i) {
         if(found_this_round[i] && !objects_found[i]) {
             //a new object was detected.
-            objects_found[i] = true;
+            int pixel_row = colors_found[color_mappings[i]].row;
+            int pixel_col = colors_found[color_mappings[i]].col;
+            float depth = colors_found[color_mappings[i]].depth;
+
+            ros::Publisher& p = master_publisher;
+            bool hint = false;
+            if(i < 8 &&
+                    (depth > max_detection_distance ||
+                     pixel_row < edge_close_h ||
+                     pixel_row > 480 - edge_close_h ||
+                     pixel_col < edge_close_w ||
+                     pixel_col > 640 - edge_close_w
+                ) ) {
+                p = hint_publisher;
+            } else {
+                objects_found[i] = true;
+            }
+
             vision_master::object_found msg;
             msg.id = object_names[i];
 
             //its position
             std::vector<float> offsets;
-            int pixel_row = colors_found[color_mappings[i]].row;
-            int pixel_col = colors_found[color_mappings[i]].col;
-            float depth = colors_found[color_mappings[i]].depth;
+
             offsets = getRelativePosition(480,640,pixel_row, pixel_col,depth);
 
             //send message
             msg.offset_x = offsets[0];
             msg.offset_y = offsets[1];
-            master_publisher.publish(msg);
+            p.publish(msg);
+            if(!hint)
             ROS_INFO_STREAM("FOUND OBJECT: " << object_names[i] << " Offsets: ("
                             << offsets[0] << "," << offsets[1] << ")");
+            else
+            ROS_INFO_STREAM("HINT: " << object_names[i] << " Offsets: ("
+                                << offsets[0] << "," << offsets[1] << ")");
         }
     }
 }
@@ -300,6 +323,10 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
     color_mappings[8] = 5;
     color_mappings[9] = 4;
 
+    max_detection_distance = 0.49;
+    edge_close_w = 40;
+    edge_close_h = 40;
+
 
     //general ros setup
     t_color = ros::Time::now();
@@ -307,6 +334,7 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
     color_subscriber = handle.subscribe("/vision/color_classifier", 1, &VisionMasterNode::colorCallback, this);
     depth_subscriber = handle.subscribe("/vision/cube_identifier", 1, &VisionMasterNode::depthCallback, this);
     master_publisher = handle.advertise<vision_master::object_found>("/vision/detection", 100);
+    hint_publisher = handle.advertise<vision_master::object_found>("/vision/detection_hint", 100);
     return handle;
 }
 
