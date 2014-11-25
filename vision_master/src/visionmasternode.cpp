@@ -35,6 +35,8 @@ void VisionMasterNode::update() {
     std::vector<float> offsets_x(10);
     std::vector<float> offsets_y(10);
 
+    //basically go through each color and check if we see something.
+
     if(colors_found[0].found) {
         //sees something blue
         //do we see a cube?
@@ -125,19 +127,22 @@ void VisionMasterNode::update() {
         occurances_in_a_row[8] = 0;
     }
 
+
     for(int i = 0; i < found_this_round.size(); ++i) {
         if(found_this_round[i] && !objects_found[i]) {
+            //a new object was detected.
             objects_found[i] = true;
             vision_master::object_found msg;
             msg.id = object_names[i];
+
+            //its position
             std::vector<float> offsets;
             int pixel_row = colors_found[color_mappings[i]].row;
             int pixel_col = colors_found[color_mappings[i]].col;
             float depth = colors_found[color_mappings[i]].depth;
-            //getRelativePosition()
-            //getRelativePosition()
-
             offsets = getRelativePosition(480,640,pixel_row, pixel_col,depth);
+
+            //send message
             msg.offset_x = offsets[0];
             msg.offset_y = offsets[1];
             master_publisher.publish(msg);
@@ -147,6 +152,24 @@ void VisionMasterNode::update() {
     }
 }
 
+/**
+Input the pixel coordinates where the obejct was found and the distance to it,
+and it gives the relative offset in x-y coordinates where the object is in
+a 2D space relative to the robot. Used for the mapping part.
+
+Note: For some reason the x axis is positive to the left and negative to the right
+in the mapping, so that is how this outputs. I don't know why they did that and
+it doesn't make any sense. So don't blame me for that /Dmitrij.
+
+Geometrical explanation for what happens:
+Depth to object + camera height gives the ground distance to the object, which
+is called d_g in the function (using pythagora's theorem).
+
+Then we calculate w_omega, which is the angle between where the robot's middle front is facing
+and the object. Using w_omega and d_g we can use trivial trigonometry do the the distances in
+the x and y direction to the object.
+
+*/
 std::vector<float> VisionMasterNode::getRelativePosition(
         int camera_res_h,
         int camera_res_w,

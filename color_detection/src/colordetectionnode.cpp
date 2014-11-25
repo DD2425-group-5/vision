@@ -248,6 +248,7 @@ void ColorDetectionNode::update() {
         msg.blue.col = contour_centers[0].x;
         msg.blue.row = contour_centers[0].y;
         msg.blue.depth = getDepth(contour_centers[0].y,contour_centers[0].x);
+        ROS_INFO("BLUE SEEN");
     }
 
     if(biggest_contours[1] >= models[1].min_contour_size) {
@@ -255,6 +256,7 @@ void ColorDetectionNode::update() {
         msg.green.col = contour_centers[1].x;
         msg.green.row = contour_centers[1].y;
         msg.green.depth = getDepth(contour_centers[1].y,contour_centers[1].x);
+        ROS_INFO("GREEN SEEN");
     }
 
     if(biggest_contours[2] >= models[2].min_contour_size) {
@@ -262,6 +264,7 @@ void ColorDetectionNode::update() {
         msg.red.col = contour_centers[2].x;
         msg.red.row = contour_centers[2].y;
         msg.red.depth = getDepth(contour_centers[2].y,contour_centers[2].x);
+        ROS_INFO("RED SEEN");
     }
 
     if(biggest_contours[3] >= models[3].min_contour_size) {
@@ -269,6 +272,7 @@ void ColorDetectionNode::update() {
         msg.yellow.col = contour_centers[3].x;
         msg.yellow.row = contour_centers[3].y;
         msg.yellow.depth = getDepth(contour_centers[3].y,contour_centers[3].x);
+        ROS_INFO("YELLOW SEEN");
     }
 
     if(biggest_contours[4] >= models[4].min_contour_size) {
@@ -276,6 +280,7 @@ void ColorDetectionNode::update() {
         msg.orange.col = contour_centers[4].x;
         msg.orange.row = contour_centers[4].y;
         msg.orange.depth = getDepth(contour_centers[4].y,contour_centers[4].x);
+        ROS_INFO("ORANGE SEEN");
     }
 
     if(biggest_contours[5] >= models[5].min_contour_size) {
@@ -283,19 +288,12 @@ void ColorDetectionNode::update() {
         msg.purple.col = contour_centers[5].x;
         msg.purple.row = contour_centers[5].y;
         msg.purple.depth = getDepth(contour_centers[5].y,contour_centers[5].x);
+        ROS_INFO("PURPLE SEEN");
     }
 
 
     //publish message
     classifier_publisher.publish(msg);
-
-
-    //classify
-    //for(int i = 0; i < biggest_contours.size(); ++i) {
-
-
-        //ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
-    //}
 }
 
 /**

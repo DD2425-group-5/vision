@@ -27,6 +27,11 @@ void CubeIdentifierNode::readParams(ros::NodeHandle& n) {
                     << voxel_grid_x << "," << voxel_grid_y << "," << voxel_grid_z << ")");
 }
 
+/**
+Downsamples the pointcloud given and puts it into the output cloud. Uses a voxel grid
+of size (voxel_grid_x, voxel_grid_y, voxel_grid_z), which should have been read as
+parameters.
+*/
 void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output) {
     //pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZRGB> > sor;
@@ -36,9 +41,39 @@ void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&
     sor.filter (*output);
 }
 
+/**
+Key method. The basic idea is to check wether the two vectors reference and other are
+"parallel" enough. Basically check the angle between them, and if its small enough
+(around5 degrees) they are deemed parallel. The angle is checked with the dot product.
+Specifically, the angle theta between two vectors v and u is:
+
+cos(theta) = (v*u)/(|v|*|u|)
+
+However, doing these calculations for every point is slow. First, v, the reference
+vector, is not going to change in the frame. So |v| can be precomputed. Also, we want
+to check if
+
+theta < thresh_deg
+where theta = arccos((v*u)/(|v|*|u|))
+Thus thresh_deg > arccos((v*u)/(|v|*|u|))
+
+This is eqvivalent to checking
+
+cos(thresh_deg) < (v*u)/(|v|*|u|)
+
+And because |v| could be precomputed:
+
+cos(thresh_deg)*|v| < (v*u)/ |u|
+
+the left side can be completely precomputed, but the right will haveto be done
+for every pixel. min_thresh (the input) is the left side of this equation.
+*/
 bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other,
                                      float min_thresh) {
+    //using other variables because their name is shorter.
     float ux,uy,uz,vx,vy,vz;
+
+    //note: make sure the vector points up, similar to the plane normal.
     if(other.normal_y < 0) {
         vx = -other.normal_x;
         vy = -other.normal_y;
@@ -58,6 +93,7 @@ bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::No
 
 
 /*
+    The full non-optimized calculations can be seen here:
     float top = ux*vx+uy*vy+uz*vz;
     float bot = std::sqrt(ux*ux+uy*uy+uz*uz)*std::sqrt(vx*vx+vy*vy+vz*vz);
     float angle = std::acos(top/bot);
@@ -80,9 +116,8 @@ void CubeIdentifierNode::update() {
         return;
     }
 
-    //ROS_INFO("BEGIN UPDATE");
+    //plane normal is the plane's coefficients.
     pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
-    //pcl::PointCloud& pc = *p_pc;
 
     //make sure the normal points up.
     if(normal.normal_y < 0) {
@@ -94,19 +129,12 @@ void CubeIdentifierNode::update() {
     //downsample
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
-    //*c3po = *p_pc;
-
-    //downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr(p_pc),down_sampled);
-    //downSample(p_pc,down_sampled);
     downSample(c3po,down_sampled);
 
 
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
     ne.setInputCloud (down_sampled);
-    //ROS_INFO_STREAM("SIZE BEFORE DOWNSAMPLING: " << p_pc->size() << " AFTER: " << down_sampled->size());
-
-    //ROS_INFO("INITTED NORMAL ESTIMATION");
 
     // Create an empty kdtree representation, and pass it to the normal estimation object.
     // Its content will be filled inside the object, based on the given input dataset
@@ -122,32 +150,30 @@ void CubeIdentifierNode::update() {
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
 
-    // Use all neighbors in a sphere of radius 2cm
+    // Use all neighbors in a sphere of radius whatever is given
     ne.setRadiusSearch (distance_search_radius);
 
-    // Compute the features
+    // Computes the normals for each point
     ne.compute (*cloud_normals);
-    //ROS_INFO("SEARCH_DONE");
 
+    //precalculate the "left side" of the closeEnough comparison
+    //see comments for that function.
+    //close enough thresh is the cosine part already computed
+    //that is done in nodeSetup.
     float min_thresh = close_enough_thresh *
             std::sqrt(std::pow(normal.normal_x,2)+
                       std::pow(normal.normal_y,2)+
                       std::pow(normal.normal_z,2));
 
     int numClose = 0;
-    //std::vector<pcl::PointXYZ> parallel;
 
     for(int i = 0; i < cloud_normals->size(); ++i) {
         if(closeEnough(normal,(*cloud_normals)[i],min_thresh)) {
             ++numClose;
-            //parallel.push_back(i);
-            //parallel.push_back(pcl::PointXYZ(
-            //                  (*down_sampled)[i].x,(*down_sampled)[i].y,(*down_sampled)[i].z);
-
         }
     }
 
-    //ROS_INFO_STREAM("NUM CLOSE: " << numClose);
+    ROS_INFO_STREAM("NUM CLOSE: " << numClose);
 
     if(numClose >= num_similar_vectors_thresh) {
         msg.data = true;
@@ -155,21 +181,6 @@ void CubeIdentifierNode::update() {
 
 
     cube_publisher.publish(msg);
-/*
-
-    if(parallel.size() >= num_similar_vectors_thresh) {
-        for(int i = 0; i < parallel.size(); ++i) {
-
-        }
-    }
-*/
-    //if(numClose > 1000)
-     //  ROS_INFO("SUSPECTING WE GOT A CUBE...");
-
-
-    //ROS_INFO_STREAM("Num point input: " << p_pc->size() << " normals: " << cloud_normals->size());
-
-
 }
 
 ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
@@ -179,8 +190,6 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     readParams(handle);
 
     close_enough_thresh = std::cos((theta*M_PI) / 180);
-
-
 
     pc_subscriber = handle.subscribe("/plane_extraction/plane_removed", 1,
                                          &CubeIdentifierNode::pcCallback, this);
