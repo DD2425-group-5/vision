@@ -152,6 +152,7 @@ void VisionMasterNode::update() {
                 p = hint_publisher;
             } else {
                 objects_found[i] = true;
+                hint = false;
             }
 
             vision_master::object_found msg;
