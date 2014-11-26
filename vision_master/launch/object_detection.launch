@@ -6,7 +6,7 @@
     <arg name="display" default="log"/>
   </include>
 
-  <include file="$(find pcl_methods)/launch/cube_identifier.launch" />
+  <include file="$(find pcl_methods)/launch/cube_identifier.launch" >
     <arg name="display" default="log"/>
   </include>
 
