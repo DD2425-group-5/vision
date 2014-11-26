@@ -53,8 +53,8 @@ void VisionMasterNode::update() {
                 found_this_round[7] = true;
         }
     } else {
-        occurances_in_a_row[1] = 0;
-        occurances_in_a_row[7] = 0;
+        occurances_in_a_row[1] -= 1;
+        occurances_in_a_row[7] -= 1;
     }
 
     if(colors_found[1].found) {
@@ -72,8 +72,8 @@ void VisionMasterNode::update() {
                 found_this_round[6] = true;
         }
     } else {
-        occurances_in_a_row[2] = 0;
-        occurances_in_a_row[6] = 0;
+        occurances_in_a_row[2] -= 1;
+        occurances_in_a_row[6] -= 1;
     }
 
     if(colors_found[2].found) {
@@ -91,8 +91,8 @@ void VisionMasterNode::update() {
                 found_this_round[5] = true;
         }
     }  else {
-        occurances_in_a_row[0] = 0;
-        occurances_in_a_row[5] = 0;
+        occurances_in_a_row[0] -= 1;
+        occurances_in_a_row[5] -= 1;
     }
 
     if(colors_found[3].found) {
@@ -110,8 +110,8 @@ void VisionMasterNode::update() {
                 found_this_round[4] = true;
         }
     } else {
-        occurances_in_a_row[3] = 0;
-        occurances_in_a_row[4] = 0;
+        occurances_in_a_row[3] -= 1;
+        occurances_in_a_row[4] -= 1;
     }
 
     if(colors_found[4].found) {
@@ -121,7 +121,7 @@ void VisionMasterNode::update() {
                 found_this_round[9] = true;
         }
     } else {
-        occurances_in_a_row[9] = 0;
+        occurances_in_a_row[9] -= 1;
     }
 
     if(colors_found[5].found) {
@@ -129,9 +129,13 @@ void VisionMasterNode::update() {
         if(occurances_in_a_row[8] >= occurances_thresh)
             found_this_round[8] = true;
     } else {
-        occurances_in_a_row[8] = 0;
+        occurances_in_a_row[8] -= 1;
     }
 
+    for(int i = 0; i < occurances_in_a_row.size(); ++i) {
+        if(occurances_in_a_row[i] < 0)
+            occurances_in_a_row[i] = 0;
+    }
 
     for(int i = 0; i < found_this_round.size(); ++i) {
         if(found_this_round[i] && !objects_found[i]) {
@@ -150,9 +154,10 @@ void VisionMasterNode::update() {
                      pixel_col > 640 - edge_close_w
                 ) ) {
                 p = hint_publisher;
+                hint = true;
             } else {
                 objects_found[i] = true;
-                hint = false;
+                
             }
 
             vision_master::object_found msg;

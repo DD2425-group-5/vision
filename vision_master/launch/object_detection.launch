@@ -2,9 +2,7 @@
   <rosparam file="$(find project_launch)/config/global_params.yaml" command="load" />
 
   <include file="$(find openni2_launch)/launch/openni2.launch"/>
-  <include file="$(find color_detection)/launch/colorDetector.launch">
-    <arg name="display" default="log"/>
-  </include>
+
 
   <include file="$(find pcl_methods)/launch/cube_identifier.launch" >
     <arg name="display" default="log"/>
@@ -13,4 +11,12 @@
   <node name="espeak_node" pkg="ras_espeak" type="espeak_node"/>
   <node name="evidence" pkg="vision_master" type="evidence"/>
   <node name="visionMaster" pkg="vision_master" type="visionMaster" output="screen" />
+  
+    <include file="$(find color_detection)/launch/colorDetector.launch">
+    <arg name="display" default="log"/>
+  </include>
+  
+  <node pkg="rosbag" type="record" name="object_evidence"
+        args="record -o /home/dmitrij/Documents/documents/evidence /evidence"/>
+  
 </launch>
