@@ -7,7 +7,9 @@
   <rosparam file="$(find color_detection)/config/redParams.yaml" command="load" />
   <rosparam file="$(find color_detection)/config/yellowParams.yaml" command="load" />
 
-  <node name="colorDetector" pkg="color_detection" type="colorDetector" output="screen" />
+  <arg name="display" default="screen"/>
+  <node name="colorDetector" pkg="color_detection" type="colorDetector"
+        output="$(arg display)" />
 
     
 

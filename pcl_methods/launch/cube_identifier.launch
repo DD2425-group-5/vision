@@ -1,6 +1,7 @@
 <launch>
   <rosparam file="$(find pcl_methods)/config/cube_identifier_params.yaml" command="load" />
-
+  <arg name="display" default="screen"/>
   <node name="plane_extraction" pkg="pcl_methods" type="plane_extraction" />
-  <node name="cubeIdentifier" pkg="pcl_methods" type="cubeIdentifier" output="screen" />
+  <node name="cubeIdentifier" pkg="pcl_methods" type="cubeIdentifier"
+        output="$(arg display)" />
 </launch>
