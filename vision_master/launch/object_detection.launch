@@ -17,6 +17,6 @@
   </include>
   
   <node pkg="rosbag" type="record" name="object_evidence"
-        args="record -o /home/dmitrij/Documents/documents/evidence /evidence"/>
+        args="record -o /home/dmitrij/Documents/documents/evidence/evidence /evidence"/>
   
 </launch>
