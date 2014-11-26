@@ -136,6 +136,9 @@ void VisionMasterNode::update() {
         if(occurances_in_a_row[i] < 0)
             occurances_in_a_row[i] = 0;
     }
+    
+    //ROS_INFO_STREAM("TOPIC NAME: " << master_publisher.getTopic() 
+    //                << " Num Subscribers: " << master_publisher.getNumSubscribers());
 
     for(int i = 0; i < found_this_round.size(); ++i) {
         if(found_this_round[i] && !objects_found[i]) {
@@ -153,7 +156,7 @@ void VisionMasterNode::update() {
                      pixel_col < edge_close_w ||
                      pixel_col > 640 - edge_close_w
                 ) ) {
-                p = hint_publisher;
+                //p = hint_publisher;
                 hint = true;
             } else {
                 objects_found[i] = true;
@@ -171,6 +174,7 @@ void VisionMasterNode::update() {
             //send message
             msg.offset_x = offsets[0];
             msg.offset_y = offsets[1];
+            if(!hint)
             p.publish(msg);
             if(!hint)
             ROS_INFO_STREAM("FOUND OBJECT: " << object_names[i] << " Offsets: ("
@@ -346,9 +350,15 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
 
 VisionMasterNode::VisionMasterNode(int argc, char* argv[]) {
     ros::NodeHandle handle = nodeSetup(argc, argv);
+    //hand = nodeSetup(argc, argv);
     runNode(handle);
 }
 
+//void ruuun(VisionMasterNode& vmn) {
+ //   vmn.runNode(vmn.hand);
+//}
+
 int main(int argc, char* argv[]) {
     VisionMasterNode vmn(argc, argv);
+    //ruuun(vmn);
 }

@@ -32,6 +32,9 @@ public:
     ros::Subscriber depth_subscriber;
     ros::Publisher master_publisher;
     ros::Publisher hint_publisher;
+    //ros::NodeHandle hand;
+    
+    void runNode(ros::NodeHandle handle);
 
     enum object_ids { Red_Cube,
                    Blue_Cube,
@@ -68,7 +71,7 @@ private:
     void colorCallback(const color_detection::colors_detected::ConstPtr &msg);
     void depthCallback(const std_msgs::Bool::ConstPtr &msg);
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
-    void runNode(ros::NodeHandle handle);
+    
     void update();
 
     //objects found
