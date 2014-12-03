@@ -243,7 +243,7 @@ void CubeIdentifierNode::update() {
                 }
             }
 
-            ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose);
+            ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
 
             if(numClose >= num_similar_vectors_thresh) {
                 msg.data[i].cube = true;
