@@ -4,6 +4,7 @@ ros::Publisher noplane;
 //ros::Publisher plane;
 //ros::Publisher exobj;
 //ros::Publisher bbox;
+ros::Publisher noplane_organized;
 ros::Publisher coeffs;
 
 using namespace PCLUtil;
@@ -18,7 +19,8 @@ using namespace PCLUtil;
 void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     // extract the plane from msg - plane points are removed from msg, present in domPlane
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr domPlane = extractDominantPlane(msg, coefficients, 0.02);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org;
+    extractDominantPlane(msg, cloud_org, coefficients, 0.02);
     
     pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
     
@@ -54,14 +56,17 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
  * cloud will contain the plane, and the cloud passed in will have the plane
  * removed.
  */
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr extractDominantPlane(
+void extractDominantPlane(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org,
     pcl::ModelCoefficients::Ptr coefficients,
     float tolerance) {
     // Stores the coefficients of the plane, defined as
     // ax + by + cz + d = 0
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr notplane(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>());
+    *cloud_org = *cloud;
+    //pcl::PointCloud<pcl::PointXYZRGB>::Ptr notplane_org(new pcl::PointCloud<pcl::PointXYZRGB>());
+    //pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>());
     // The points which lie on the plane will be put in here
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     
@@ -87,12 +92,16 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr extractDominantPlane(
     extract.setNegative(true); // return points which are NOT the indices
     extract.filter(*notplane);
 
-    extract.setNegative(false); // return points which ARE the indices
-    extract.filter(*plane);
+    //extract.setNegative(false); // return points which ARE the indices
+    //extract.filter(*plane);
 
     *cloud = *notplane;
+    ROS_INFO_STREAM("CLOUD_HEIGHT: " << cloud->height);
+    ROS_INFO_STREAM("CLOUD_ORG_HEIGHT: " << cloud_org->height);
 
-    return plane;
+
+
+    //return plane;
 }
 
 /**
