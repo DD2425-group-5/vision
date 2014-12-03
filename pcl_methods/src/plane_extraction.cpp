@@ -19,7 +19,7 @@ using namespace PCLUtil;
 void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     // extract the plane from msg - plane points are removed from msg, present in domPlane
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
     extractDominantPlane(msg, cloud_org, coefficients, 0.02);
     
     pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
