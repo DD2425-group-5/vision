@@ -23,6 +23,10 @@ void CubeIdentifierNode::readParams(ros::NodeHandle& n) {
     ROSUtil::getParam(n, "cube_identifier_params/voxel_grid_x", voxel_grid_x);
     ROSUtil::getParam(n, "cube_identifier_params/voxel_grid_y", voxel_grid_y);
     ROSUtil::getParam(n, "cube_identifier_params/voxel_grid_z", voxel_grid_z);
+    ROSUtil::getParam(n, "cube_identifier_params/check_patric_cube", check_patric_cube);
+    ROSUtil::getParam(n, "cube_identifier_params/check_purple_cube", check_purple_cube);
+    ROSUtil::getParam(n, "cube_identifier_params/size_around_color", size_around_color);
+
 
     ROS_INFO("Successfully read params in cube_identifier.");
     ROS_INFO_STREAM("Theta: " << theta);
@@ -47,17 +51,18 @@ void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&
 }
 
 /**
-Downsamples the pointcloud given and puts it into the output cloud. Uses a voxel grid
-of size (voxel_grid_x, voxel_grid_y, voxel_grid_z), which should have been read as
-parameters.
+Crops input, puts all points from the input pointcloud in the rectangle defined by
+minRow,maxRow,minCol,maxCol into the output pointcloud.
 */
-void CubeIdentifierNode::getAreaAroundColor(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
-                pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output) {
-    //pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZRGB> > sor;
-    pcl::VoxelGrid<pcl::PointXYZRGB > sor;
-    sor.setInputCloud (input);
-    sor.setLeafSize (voxel_grid_x, voxel_grid_y, voxel_grid_z);
-    sor.filter (*output);
+void CubeIdentifierNode::cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,
+                                    int minCol, int maxCol) {
+
+    for(int row = minRow; row <= maxRow; ++row) {
+        for(int col = minCol; col <= maxCol; ++col) {
+            output->push_back(input->at(col,row));
+        }
+    }
 }
 
 /**
@@ -123,8 +128,11 @@ bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::No
 }
 
 void CubeIdentifierNode::update() {
-    std_msgs::Bool msg;
-    msg.data = false;
+    vision_msgs::colors_with_shape_info msg;
+
+    for(int i = 0; i < 6; ++i) {
+        msg.data[i].color.found = false;
+    }
 
     if((ros::Time::now()-t_coeff).toSec()>1.0) {
         cube_publisher.publish(msg);
@@ -139,83 +147,111 @@ void CubeIdentifierNode::update() {
         return;
     }
 
-    std::vector<std::pair<int,int> > pois; //Point Of InterestS
-    if(c_colors->blue.found)
-        pois.push_back(std::pair<int,int>(c_colors->blue.row,c_colors->blue.col));
-    if(c_colors->green.found)
-        pois.push_back(std::pair<int,int>(c_colors->green.row,c_colors->green.col));
-    if(c_colors->red.found)
-        pois.push_back(std::pair<int,int>(c_colors->red.row,c_colors->red.col));
-    if(c_colors->yellow.found)
-        pois.push_back(std::pair<int,int>(c_colors->yellow.row,c_colors->yellow.col));
-    if(c_colors->orange.found)
-        pois.push_back(std::pair<int,int>(c_colors->orange.row,c_colors->orange.col));
-    //if(c_colors->purple.found)
-    //    pois.push_back(std::pair<int,int>(c_colors->purple.row,c_colors->purple.col));
+    //initialize message
+    msg.data[0].color = c_colors->blue;
+    msg.data[1].color = c_colors->green;
+    msg.data[2].color = c_colors->red;
+    msg.data[3].color = c_colors->yellow;
+    msg.data[4].color = c_colors->orange;
+    msg.data[5].color = c_colors->purple;
+
+    /*
+        std::vector<std::pair<int,int> > pois(6,std::pair<int,int>(-1,-1)); //Point Of InterestS
+        for(int i = 0; i < 6; ++i) {
+            if(pois[i].color.found)
+                pois[i] = std::pair<int,int>(c_colors->green.row,c_colors->green.col);
+        }
 
 
-    //plane normal is the plane's coefficients.
-    pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
+        if(c_colors->blue.found)
+            pois[0] = std::pair<int,int>(c_colors->blue.row,c_colors->blue.col);
+        if(c_colors->green.found)
+            pois[1] = std::pair<int,int>(c_colors->green.row,c_colors->green.col);
+        if(c_colors->red.found)
+            pois[2] = std::pair<int,int>(c_colors->red.row,c_colors->red.col);
+        if(c_colors->yellow.found)
+            pois[3] = std::pair<int,int>(c_colors->yellow.row,c_colors->yellow.col);
+        if(c_colors->orange.found)
+            pois[4] = std::pair<int,int>(c_colors->orange.row,c_colors->orange.col);
+        if(c_colors->purple.found)
+            pois[5] = std::pair<int,int>(c_colors->purple.row,c_colors->purple.col);
+    */
+    for(int i = 0; i < 6; ++i) {
+        if(msg.data[i].color.found) {
+            if(!check_patric_cube && i == 4)
+                continue;
+            if(!check_purple_cube && i == 5)
+                continue;
 
-    //make sure the normal points up.
-    if(normal.normal_y < 0) {
-        normal.normal_x = -normal.normal_x;
-        normal.normal_y = -normal.normal_y;
-        normal.normal_z = -normal.normal_z;
-    }
+            //plane normal is the plane's coefficients.
+            pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
 
-    //downsample
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
-    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
-    downSample(c3po,down_sampled);
+            //make sure the normal points up.
+            if(normal.normal_y < 0) {
+                normal.normal_x = -normal.normal_x;
+                normal.normal_y = -normal.normal_y;
+                normal.normal_z = -normal.normal_z;
+            }
 
-    pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+            //downsample
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
+            pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
 
-    ne.setInputCloud (down_sampled);
+            int minrow = std::max(-size_around_color+msg.data[i].color.row,0);
+            int maxrow = std::min(size_around_color+msg.data[i].color.row,(int)c3po->width-1);
+            int mincol = std::max(-size_around_color+msg.data[i].color.col,0);
+            int maxcol = std::min(size_around_color+msg.data[i].color.col,(int)c3po->height-1);
+            cropToArea(c3po,down_sampled,minrow,maxrow,mincol,maxcol);
 
-    // Create an empty kdtree representation, and pass it to the normal estimation object.
-    // Its content will be filled inside the object, based on the given input dataset
-    // (as no other search surface is given).
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+            pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+
+            ne.setInputCloud (down_sampled);
+
+            // Create an empty kdtree representation, and pass it to the normal estimation object.
+            // Its content will be filled inside the object, based on the given input dataset
+            // (as no other search surface is given).
+            pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+
+            ne.setSearchMethod (tree);
+
+            //ROS_INFO("KD_TREES SET");
+
+            // Output datasets
+            pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
 
-    ne.setSearchMethod (tree);
+            // Use all neighbors in a sphere of radius whatever is given
+            ne.setRadiusSearch (distance_search_radius);
 
-    //ROS_INFO("KD_TREES SET");
+            // Computes the normals for each point
+            ne.compute (*cloud_normals);
 
-    // Output datasets
-    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+            //precalculate the "left side" of the closeEnough comparison
+            //see comments for that function.
+            //close enough thresh is the cosine part already computed
+            //that is done in nodeSetup.
+            float min_thresh = close_enough_thresh *
+                    std::sqrt(std::pow(normal.normal_x,2)+
+                              std::pow(normal.normal_y,2)+
+                              std::pow(normal.normal_z,2));
 
+            int numClose = 0;
 
-    // Use all neighbors in a sphere of radius whatever is given
-    ne.setRadiusSearch (distance_search_radius);
+            for(int j = 0; i < cloud_normals->size(); ++j) {
+                if(closeEnough(normal,(*cloud_normals)[j],min_thresh)) {
+                    ++numClose;
+                }
+            }
 
-    // Computes the normals for each point
-    ne.compute (*cloud_normals);
+            //ROS_INFO_STREAM("NUM CLOSE: " << numClose);
 
-    //precalculate the "left side" of the closeEnough comparison
-    //see comments for that function.
-    //close enough thresh is the cosine part already computed
-    //that is done in nodeSetup.
-    float min_thresh = close_enough_thresh *
-            std::sqrt(std::pow(normal.normal_x,2)+
-                      std::pow(normal.normal_y,2)+
-                      std::pow(normal.normal_z,2));
-
-    int numClose = 0;
-
-    for(int i = 0; i < cloud_normals->size(); ++i) {
-        if(closeEnough(normal,(*cloud_normals)[i],min_thresh)) {
-            ++numClose;
+            if(numClose >= num_similar_vectors_thresh) {
+                msg.data[i].cube = true;
+            } else {
+                msg.data[i].cube = false;
+            }
         }
     }
-
-    ROS_INFO_STREAM("NUM CLOSE: " << numClose);
-
-    if(numClose >= num_similar_vectors_thresh) {
-        msg.data = true;
-    }
-
 
     cube_publisher.publish(msg);
 }
@@ -234,7 +270,7 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
                                          &CubeIdentifierNode::coeffsCallback, this);
     color_subscriber = handle.subscribe("/vision/color_classifier", 10,
                                          &CubeIdentifierNode::colorCallback, this);
-    cube_publisher = handle.advertise<std_msgs::Bool>("/vision/cube_identifier",5);
+    cube_publisher = handle.advertise<vision_msgs::colors_with_shape_info>("/vision/cube_identifier",5);
 
     return handle;
 }

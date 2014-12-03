@@ -4,8 +4,10 @@
 #include <ros/ros.h>
 
 //messages
-#include <vision_msgs/colors_detected.h>
+//#include <vision_msgs/colors_detected.h>
 #include <vision_msgs/color_status.h>
+#include <vision_msgs/colors_with_shape_info.h>
+#include <vision_msgs/color_and_cube.h>
 
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
@@ -28,8 +30,9 @@ class VisionMasterNode
 public:
     VisionMasterNode(int argc, char* argv[]);
 
-    ros::Subscriber color_subscriber;
-    ros::Subscriber depth_subscriber;
+    //ros::Subscriber color_subscriber;
+    //ros::Subscriber depth_subscriber;
+    ros::Subscriber all_subscriber;
     ros::Publisher master_publisher;
     ros::Publisher hint_publisher;
     //ros::NodeHandle hand;
@@ -62,14 +65,17 @@ public:
 
 private:
     //messages
-    ros::Time t_color;
-    ros::Time t_depth;
-    bool cube_found;
-    std::vector<vision_msgs::color_status> colors_found;
+    //ros::Time t_color;
+    //ros::Time t_depth;
+    //bool cube_found;
+    //std::vector<vision_msgs::color_status> colors_found;
+    ros::Time t_all;
+    vision_msgs::colors_with_shape_info::Ptr p_all;
 
     //ros stuff
-    void colorCallback(const vision_msgs::colors_detected::ConstPtr &msg);
-    void depthCallback(const std_msgs::Bool::ConstPtr &msg);
+    //void colorCallback(const vision_msgs::colors_detected::ConstPtr &msg);
+    //void depthCallback(const std_msgs::Bool::ConstPtr &msg);
+    void allmightyCallback(const vision_msgs::colors_with_shape_info::Ptr& msg);
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     
     void update();
@@ -80,6 +86,7 @@ private:
     std::vector<int> occurances_in_a_row;
     std::vector<std::string> object_names;
     std::vector<int> color_mappings;
+    std::vector<std::pair<int,int> > color_to_id;
 
     std::vector<float> getRelativePosition(int camera_res_h,
                                          int camera_res_w,

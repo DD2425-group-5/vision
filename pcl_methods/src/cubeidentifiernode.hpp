@@ -19,6 +19,8 @@
 #include <std_msgs/Bool.h>
 #include <vision_msgs/colors_detected.h>
 #include <vision_msgs/color_status.h>
+#include <vision_msgs/color_and_cube.h>
+#include <vision_msgs/colors_with_shape_info.h>
 
 
 class CubeIdentifierNode {
@@ -54,8 +56,9 @@ private:
     //see if a normal is close enough to plane:
     void downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &input,
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output);
-    void getAreaAroundColor(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &input,
-                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output);
+    void cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,
+                                        int minCol, int maxCol);
 
     bool closeEnough(const pcl::Normal& reference, const pcl::Normal& other, float min_thresh);
 
@@ -67,6 +70,10 @@ private:
     float voxel_grid_x;
     float voxel_grid_y;
     float voxel_grid_z;
+
+    bool check_patric_cube;
+    bool check_purple_cube;
+    int size_around_color;
 
     //for optimizations
     float close_enough_thresh;

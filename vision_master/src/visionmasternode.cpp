@@ -1,5 +1,5 @@
 #include "visionmasternode.hpp"
-
+/*
 void VisionMasterNode::colorCallback(const vision_msgs::colors_detected::ConstPtr &msg) {
     t_color = ros::Time::now();
     colors_found[0] = msg->blue;
@@ -14,7 +14,11 @@ void VisionMasterNode::depthCallback(const std_msgs::Bool::ConstPtr &msg) {
     t_depth = ros::Time::now();
     cube_found = msg->data;
 }
-
+*/
+void VisionMasterNode::allmightyCallback(const vision_msgs::colors_with_shape_info::Ptr& msg) {
+    t_all = ros::Time::now();
+    p_all = msg;
+}
 
 void VisionMasterNode::update() {
     //object ids:
@@ -30,122 +34,59 @@ void VisionMasterNode::update() {
 8 Purple Cross
 9 Patric
       */
+    //std::vector<bool> found_this_round(10,false);
 
-    std::vector<bool> found_this_round(10,false);
-    std::vector<float> offsets_x(10);
-    std::vector<float> offsets_y(10);
+    if((ros::Time::now()-t_all).toSec()>0.3) {
+        //cube_publisher.publish(msg);
+        return;
+    }
 
     //basically go through each color and check if we see something.
-
-    /* BLUE */
-    if(colors_found[0].found) {
-        //sees something blue
-        //do we see a cube?
-        if(cube_found) {
-            occurances_in_a_row[1] += 1;
-            occurances_in_a_row[7] = -10;
-            if(occurances_in_a_row[1] >= occurances_thresh)
-                found_this_round[1] = true;
+    //begin with the colors that have a cube (blue,green,red,yellow)
+    for(int i = 0; i < 4; ++i) {
+        if(p_all->data[i].color.found) {
+            if(p_all->data[i].cube) {
+                occurances_in_a_row[color_to_id[i].first] += 1;
+                occurances_in_a_row[color_to_id[i].second] -= 5;
+            } else {
+                occurances_in_a_row[color_to_id[i].second] += 1;
+            }
         } else {
-            //blue triangle
-            occurances_in_a_row[7] += 1;
-            if(occurances_in_a_row[7] >= occurances_thresh)
-                found_this_round[7] = true;
+            //no such color seen
+            occurances_in_a_row[color_to_id[i].first] -= 1;
+            occurances_in_a_row[color_to_id[i].second] -= 1;
         }
-    } else {
-        occurances_in_a_row[1] -= 1;
-        occurances_in_a_row[7] -= 1;
     }
 
-    if(colors_found[1].found) {
-        //sees something green
-        //do we see a cube?
-        if(cube_found) {
-            occurances_in_a_row[2] += 1;
-            occurances_in_a_row[6] = -10;
-            if(occurances_in_a_row[2] >= occurances_thresh)
-                found_this_round[2] = true;
-        } else {
-            //cylinder
-            occurances_in_a_row[6] += 1;
-            if(occurances_in_a_row[6] >= occurances_thresh)
-                found_this_round[6] = true;
-        }
-    } else {
-        occurances_in_a_row[2] -= 1;
-        occurances_in_a_row[6] -= 1;
-    }
-
-    if(colors_found[2].found) {
-        //sees something red
-        //do we see a cube?
-        if(cube_found) {
-            occurances_in_a_row[0] += 1;
-            occurances_in_a_row[5] = -10;
-            if(occurances_in_a_row[0] >= occurances_thresh)
-                found_this_round[0] = true;
-        } else {
-            //sphere
-            occurances_in_a_row[5] += 1;
-            if(occurances_in_a_row[5] >= occurances_thresh)
-                found_this_round[5] = true;
-        }
-    }  else {
-        occurances_in_a_row[0] -= 1;
-        occurances_in_a_row[5] -= 1;
-    }
-
-    if(colors_found[3].found) {
-        //sees something yellow
-        //do we see a cube?
-        if(cube_found) {
-            occurances_in_a_row[3] += 1;
-            occurances_in_a_row[4] = -10;
-            if(occurances_in_a_row[3] >= occurances_thresh)
-                found_this_round[3] = true;
-        } else {
-            //sphere
-            occurances_in_a_row[4] += 1;
-            if(occurances_in_a_row[4] >= occurances_thresh)
-                found_this_round[4] = true;
-        }
-    } else {
-        occurances_in_a_row[3] -= 1;
-        occurances_in_a_row[4] -= 1;
-    }
-
-    if(colors_found[4].found) {
-        if(!cube_found) {
+    //check patric
+    if(p_all->data[4].color.found) {
+        if(!(p_all->data[4].cube)) {
             occurances_in_a_row[9] += 1;
-            if(occurances_in_a_row[9] >= occurances_thresh)
-                found_this_round[9] = true;
         }
     } else {
         occurances_in_a_row[9] -= 1;
     }
 
-    if(colors_found[5].found) {
+    //check purple
+    if(p_all->data[5].color.found) {
         occurances_in_a_row[8] += 1;
-        if(occurances_in_a_row[8] >= occurances_thresh)
-            found_this_round[8] = true;
     } else {
         occurances_in_a_row[8] -= 1;
     }
 
     for(int i = 0; i < occurances_in_a_row.size(); ++i) {
-        if(occurances_in_a_row[i] < 0)
-            occurances_in_a_row[i] = 0;
+        occurances_in_a_row[i] = std::max(0,occurances_in_a_row[i]);
     }
     
     //ROS_INFO_STREAM("TOPIC NAME: " << master_publisher.getTopic() 
     //                << " Num Subscribers: " << master_publisher.getNumSubscribers());
 
-    for(int i = 0; i < found_this_round.size(); ++i) {
-        if(found_this_round[i] && !objects_found[i]) {
+    for(int i = 0; i < 10; ++i) {
+        if(occurances_in_a_row[i] >= occurances_thresh && !objects_found[i]) {
             //a new object was detected.
-            int pixel_row = colors_found[color_mappings[i]].row;
-            int pixel_col = colors_found[color_mappings[i]].col;
-            float depth = colors_found[color_mappings[i]].depth;
+            int pixel_row = p_all->data[color_mappings[i]].color.row;
+            int pixel_col = p_all->data[color_mappings[i]].color.col;
+            float depth = p_all->data[color_mappings[i]].color.depth;
 
             ros::Publisher& p = master_publisher;
             bool hint = false;
@@ -289,9 +230,9 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
     ros::init(argc, argv, "VisionMaster");
     ros::NodeHandle handle;
 
-    cube_found = false;
+    //cube_found = false;
     //colors_found = std::vector<bool>(6,false);
-    colors_found = std::vector<vision_msgs::color_status>(6);
+    //colors_found = std::vector<vision_msgs::color_status>(6);
     objects_found = std::vector<bool>(10,false);
     occurances_in_a_row = std::vector<int>(10,0);
 
@@ -333,16 +274,24 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
     color_mappings[8] = 5;
     color_mappings[9] = 4;
 
+    //color to id contains mappings from color->IDs of {cube,non-cube} pairs.
+    color_to_id = std::vector<std::pair<int,int> >(4);
+    color_to_id[0] = std::pair<int,int>(1,7); //blue
+    color_to_id[1] = std::pair<int,int>(2,6); //green
+    color_to_id[2] = std::pair<int,int>(0,5); //red
+    color_to_id[3] = std::pair<int,int>(3,4); //yellow
+
     max_detection_distance = 0.49;
     edge_close_w = 40;
     edge_close_h = 40;
 
 
     //general ros setup
-    t_color = ros::Time::now();
-    t_depth = ros::Time::now();
-    color_subscriber = handle.subscribe("/vision/color_classifier", 1, &VisionMasterNode::colorCallback, this);
-    depth_subscriber = handle.subscribe("/vision/cube_identifier", 1, &VisionMasterNode::depthCallback, this);
+    //t_color = ros::Time::now();
+    //t_depth = ros::Time::now();
+    //color_subscriber = handle.subscribe("/vision/color_classifier", 1, &VisionMasterNode::colorCallback, this);
+    //depth_subscriber = handle.subscribe("/vision/cube_identifier", 1, &VisionMasterNode::depthCallback, this);
+    all_subscriber = handle.subscribe("/vision/cube_identifier", 10, &VisionMasterNode::allmightyCallback, this);
     master_publisher = handle.advertise<vision_msgs::object_found>("/vision/detection", 100);
     hint_publisher = handle.advertise<vision_msgs::object_found>("/vision/detection_hint", 100);
     return handle;
