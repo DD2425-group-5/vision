@@ -183,9 +183,13 @@ void CubeIdentifierNode::update() {
             pois[5] = std::pair<int,int>(c_colors->purple.row,c_colors->purple.col);
     */
     //plane normal is the plane's coefficients.
-    pcl::Normal normal(p_plane->plane_eq.values[0],p_plane->plane_eq.values[1], p_plane->plane_eq.values[2]);
+    ROS_INFO("CHECK 1");
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
+    ROS_INFO("CHECK 2");
     pcl::fromROSMsg(p_plane->plane_removed_org,*cloud_org);
+    ROS_INFO("CHECK 3");
+    pcl::Normal normal(p_plane->plane_eq.values[0],p_plane->plane_eq.values[1], p_plane->plane_eq.values[2]);
+    ROS_INFO("CHECK 4");
 
 
     //make sure the normal points up.
@@ -298,8 +302,8 @@ void CubeIdentifierNode::runNode(ros::NodeHandle handle) {
 
 
     while(ros::ok()) {
-        update();
         ros::spinOnce();
+        update();
         loop_rate.sleep();
     }
 }
