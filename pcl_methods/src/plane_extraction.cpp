@@ -1,11 +1,11 @@
 #include "plane_extraction.hpp"
 
-ros::Publisher noplane;
+ros::Publisher pub;
 //ros::Publisher plane;
 //ros::Publisher exobj;
 //ros::Publisher bbox;
-ros::Publisher noplane_organized;
-ros::Publisher coeffs;
+//ros::Publisher noplane_organized;
+//ros::Publisher coeffs;
 
 using namespace PCLUtil;
 
@@ -20,16 +20,32 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     // extract the plane from msg - plane points are removed from msg, present in domPlane
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+
     extractDominantPlane(msg, cloud_org, coefficients, 0.02);
     
     pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
     
-    noplane.publish(msg);
+    //noplane.publish(msg);
     //plane.publish(domPlane);
+    vision_msgs::plane_extracted out_msg;
 
+
+
+    sensor_msgs::PointCloud2 ros_nonorg;
+    sensor_msgs::PointCloud2 ros_org;
     pcl_msgs::ModelCoefficients ros_coefficients;
-    pcl_conversions::fromPCL(*coefficients, ros_coefficients);
-    coeffs.publish(ros_coefficients);
+    pcl::toROSMsg(*msg,ros_nonorg);
+    pcl::toROSMsg(*cloud_org,ros_org);
+    //pcl::toROSMsg()
+    //pcl_conversions::fromPCL(*msg, ros_nonorg);
+    //pcl_conversions::fromPCL(*cloud_org, ros_org);
+
+    out_msg.plane_eq = ros_coefficients;
+    out_msg.plane_removed = ros_nonorg;
+    out_msg.plane_removed_org = ros_org;
+    pub.publish(out_msg);
+    //coeffs.publish(ros_coefficients);
 
     
     // get the bounds of the plane
@@ -96,8 +112,16 @@ void extractDominantPlane(
     //extract.filter(*plane);
 
     *cloud = *notplane;
-    ROS_INFO_STREAM("CLOUD_HEIGHT: " << cloud->height);
-    ROS_INFO_STREAM("CLOUD_ORG_HEIGHT: " << cloud_org->height);
+    //ROS_INFO_STREAM("CLOUD_HEIGHT: " << cloud->height);
+    //ROS_INFO_STREAM("CLOUD_ORG_HEIGHT: " << cloud_org->height);
+
+    for(int i = 0; i < inliers->indices.size(); ++i) {
+        int col = i%cloud_org->width;
+        int row = (i-col)/(cloud_org->width);
+        cloud_org->at(col,row).z = -100;
+    }
+    //pcl::PointXYZRGB ppp;
+
 
 
 
@@ -166,11 +190,14 @@ int main (int argc, char* argv[]) {
     
     ros::Subscriber depth_cloud = handle.subscribe("/camera/depth_registered/points", 1, pcl_callback);
     // publish a ROS type - can automatically convert from the PCL type
-    noplane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed", 10);
+    //noplane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed", 10);
+    //noplane_organized = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed_org", 10);
     //plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
     //exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
     //bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
-    coeffs = handle.advertise<pcl_msgs::ModelCoefficients>("/plane_extraction/plane_coefficients",10);
+    //coeffs = handle.advertise<pcl_msgs::ModelCoefficients>("/plane_extraction/plane_coefficients",10);
+    pub = handle.advertise<vision_msgs::plane_extracted>("/vision/plane_extraction",5);
+
     
     ros::Rate loop_rate(10);
     while (ros::ok()){

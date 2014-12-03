@@ -1,6 +1,6 @@
 #include "cubeidentifiernode.hpp"
 
-void CubeIdentifierNode::coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg) {
+/*void CubeIdentifierNode::coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg) {
     t_coeff = ros::Time::now();
     p_coeff = msg;
 }
@@ -8,6 +8,11 @@ void CubeIdentifierNode::coeffsCallback(const pcl_msgs::ModelCoefficients::Const
 void CubeIdentifierNode::pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg) {
     t_pc = ros::Time::now();
     p_pc = msg;
+}*/
+
+void CubeIdentifierNode::planeCallback(const vision_msgs::plane_extracted::ConstPtr& msg) {
+    t_plane = ros::Time::now();
+    p_plane = msg;
 }
 
 void CubeIdentifierNode::colorCallback(const vision_msgs::colors_detected::ConstPtr& msg) {
@@ -60,7 +65,8 @@ void CubeIdentifierNode::cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& inpu
 
     for(int row = minRow; row <= maxRow; ++row) {
         for(int col = minCol; col <= maxCol; ++col) {
-            output->push_back(input->at(col,row));
+            if(input->at(col,row).z >= 0 )
+                output->push_back(input->at(col,row));
         }
     }
 }
@@ -134,11 +140,11 @@ void CubeIdentifierNode::update() {
         msg.data[i].color.found = false;
     }
 
-    if((ros::Time::now()-t_coeff).toSec()>1.0) {
+ /*   if((ros::Time::now()-t_coeff).toSec()>1.0) {
         cube_publisher.publish(msg);
         return;
-    }
-    if((ros::Time::now()-t_pc).toSec()>1.0) {
+    }*/
+    if((ros::Time::now()-t_plane).toSec()>1.0) {
         cube_publisher.publish(msg);
         return;
     }
@@ -177,7 +183,10 @@ void CubeIdentifierNode::update() {
             pois[5] = std::pair<int,int>(c_colors->purple.row,c_colors->purple.col);
     */
     //plane normal is the plane's coefficients.
-    pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
+    pcl::Normal normal(p_plane->plane_eq.values[0],p_plane->plane_eq.values[1], p_plane->plane_eq.values[2]);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::fromROSMsg(p_plane->plane_removed_org,*cloud_org);
+
 
     //make sure the normal points up.
     if(normal.normal_y < 0) {
@@ -186,7 +195,6 @@ void CubeIdentifierNode::update() {
         normal.normal_z = -normal.normal_z;
     }
 
-    if(p_pc->size() > 1000)
     for(int i = 0; i < 6; ++i) {
         if(msg.data[i].color.found) {
             if(!check_patric_cube && i == 4)
@@ -194,17 +202,17 @@ void CubeIdentifierNode::update() {
             if(!check_purple_cube && i == 5)
                 continue;
 
-
-
             //downsample
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
             //pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
 
             int minrow = std::max(-size_around_color+msg.data[i].color.row,0);
-            int maxrow = std::min(size_around_color+msg.data[i].color.row,(int)p_pc->width-1);
+            int maxrow = std::min(size_around_color+msg.data[i].color.row,
+                                  (int)p_plane->plane_removed_org.width-1);
             int mincol = std::max(-size_around_color+msg.data[i].color.col,0);
-            int maxcol = std::min(size_around_color+msg.data[i].color.col,(int)p_pc->height-1);
-            cropToArea(p_pc,down_sampled,minrow,maxrow,mincol,maxcol);
+            int maxcol = std::min(size_around_color+msg.data[i].color.col,
+                                  (int)p_plane->plane_removed_org.height-1);
+            cropToArea(cloud_org,down_sampled,minrow,maxrow,mincol,maxcol);
 
             pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
@@ -267,10 +275,12 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
 
     close_enough_thresh = std::cos((theta*M_PI) / 180);
 
-    pc_subscriber = handle.subscribe("/plane_extraction/plane_removed", 1,
+    /*pc_subscriber = handle.subscribe("/plane_extraction/plane_removed", 1,
                                          &CubeIdentifierNode::pcCallback, this);
     coeffs_subscriber = handle.subscribe("/plane_extraction/plane_coefficients", 1,
-                                         &CubeIdentifierNode::coeffsCallback, this);
+                                         &CubeIdentifierNode::coeffsCallback, this);*/
+    plane_subscriber = handle.subscribe("/vision/plane_extraction",10,
+                                        &CubeIdentifierNode::planeCallback, this);
     color_subscriber = handle.subscribe("/vision/color_classifier", 10,
                                          &CubeIdentifierNode::colorCallback, this);
     cube_publisher = handle.advertise<vision_msgs::colors_with_shape_info>("/vision/cube_identifier",5);

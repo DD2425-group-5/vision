@@ -1,0 +1,3 @@
+sensor_msgs/PointCloud2 plane_removed
+sensor_msgs/PointCloud2 plane_removed_org
+pcl_msgs/ModelCoefficients plane_eq

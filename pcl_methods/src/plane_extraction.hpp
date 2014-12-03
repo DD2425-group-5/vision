@@ -12,6 +12,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/project_inliers.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <vision_msgs/plane_extracted.h>
 #include <string>
 
 void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);

@@ -21,6 +21,7 @@
 #include <vision_msgs/color_status.h>
 #include <vision_msgs/color_and_cube.h>
 #include <vision_msgs/colors_with_shape_info.h>
+#include <vision_msgs/plane_extracted.h>
 
 
 class CubeIdentifierNode {
@@ -28,8 +29,9 @@ public:
     void update();
     CubeIdentifierNode(int argc, char* argv[]);
 
-    ros::Subscriber coeffs_subscriber;
-    ros::Subscriber pc_subscriber;
+    //ros::Subscriber coeffs_subscriber;
+    //ros::Subscriber pc_subscriber;
+    ros::Subscriber plane_subscriber;
     ros::Subscriber color_subscriber;
     ros::Publisher cube_publisher;
 
@@ -40,15 +42,18 @@ private:
     void readParams(ros::NodeHandle& n);
 
     //callbacks
-    void pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
-    void coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg);
+    //void pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
+    //void coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg);
+    void planeCallback(const vision_msgs::plane_extracted::ConstPtr& msg);
     void colorCallback(const vision_msgs::colors_detected::ConstPtr& msg);
 
-    ros::Time t_pc;
-    ros::Time t_coeff;
+    //ros::Time t_pc;
+    //ros::Time t_coeff;
+    ros::Time t_plane;
     ros::Time t_color;
-    pcl_msgs::ModelCoefficients::ConstPtr p_coeff;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr p_pc;
+    //pcl_msgs::ModelCoefficients::ConstPtr p_coeff;
+    //pcl::PointCloud<pcl::PointXYZRGB>::Ptr p_pc;
+    vision_msgs::plane_extracted::ConstPtr p_plane;
     vision_msgs::colors_detected::ConstPtr c_colors;
 
 
