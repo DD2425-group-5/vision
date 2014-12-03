@@ -35,6 +35,7 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     sensor_msgs::PointCloud2 ros_nonorg;
     sensor_msgs::PointCloud2 ros_org;
     pcl_msgs::ModelCoefficients ros_coefficients;
+    pcl_conversions::fromPCL(*coefficients, ros_coefficients);
     pcl::toROSMsg(*msg,ros_nonorg);
     pcl::toROSMsg(*cloud_org,ros_org);
     //pcl::toROSMsg()
