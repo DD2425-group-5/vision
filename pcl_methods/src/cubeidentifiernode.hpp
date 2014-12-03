@@ -17,6 +17,9 @@
 
 #include <rosutil/rosutil.hpp>
 #include <std_msgs/Bool.h>
+#include <vision_msgs/colors_detected.h>
+#include <vision_msgs/color_status.h>
+
 
 class CubeIdentifierNode {
 public:
@@ -25,6 +28,7 @@ public:
 
     ros::Subscriber coeffs_subscriber;
     ros::Subscriber pc_subscriber;
+    ros::Subscriber color_subscriber;
     ros::Publisher cube_publisher;
 
 private:
@@ -36,16 +40,23 @@ private:
     //callbacks
     void pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
     void coeffsCallback(const pcl_msgs::ModelCoefficients::ConstPtr &msg);
+    void colorCallback(const vision_msgs::colors_detected::ConstPtr& msg);
 
     ros::Time t_pc;
     ros::Time t_coeff;
+    ros::Time t_color;
     pcl_msgs::ModelCoefficients::ConstPtr p_coeff;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr p_pc;
+    vision_msgs::colors_detected::ConstPtr c_colors;
+
 
     //main algorithms
     //see if a normal is close enough to plane:
     void downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &input,
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output);
+    void getAreaAroundColor(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &input,
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output);
+
     bool closeEnough(const pcl::Normal& reference, const pcl::Normal& other, float min_thresh);
 
 
@@ -59,9 +70,6 @@ private:
 
     //for optimizations
     float close_enough_thresh;
-
-
-
 
 };
 

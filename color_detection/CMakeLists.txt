@@ -1,21 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(color_detection)
 
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs message_generation image_transport cv_bridge 
-                                        rosutil visionutil)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs image_transport cv_bridge 
+                                        rosutil visionutil vision_msgs)
 find_package(OpenCV REQUIRED)
 
-add_message_files( FILES
-  colors_detected.msg
-  color_status.msg
-)
 
-generate_messages(DEPENDENCIES std_msgs) # color_detection)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES color_detection
-  CATKIN_DEPENDS message_runtime
+#  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 

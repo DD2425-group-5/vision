@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pcl_methods)
 
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs image_transport pcl_ros pcl_conversions pclutil rosutil)
+find_package(catkin REQUIRED COMPONENTS 
+roscpp std_msgs sensor_msgs image_transport pcl_ros pcl_conversions pclutil rosutil vision_msgs)
+
 find_package(PCL REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES 
-  CATKIN_DEPENDS roscpp image_transport sensor_msgs pcl_ros pcl_conversions
+#  CATKIN_DEPENDS roscpp image_transport sensor_msgs pcl_ros pcl_conversions message_runtime
 #  DEPENDS system_lib
 )
 

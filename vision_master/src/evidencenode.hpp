@@ -5,7 +5,7 @@
 #include <std_msgs/String.h>
 #include <sensor_msgs/Image.h>
 #include <ras_msgs/RAS_Evidence.h>
-#include <vision_master/object_found.h>
+#include <vision_msgs/object_found.h>
 
 //#include <r
 
@@ -29,7 +29,7 @@ public:
 private:
 
     //ros stuff
-    void objectCallback(const vision_master::object_found::ConstPtr &msg);
+    void objectCallback(const vision_msgs::object_found::ConstPtr &msg);
     void rgbCallback(const sensor_msgs::Image::ConstPtr &msg);
     sensor_msgs::Image::ConstPtr camera_img_raw;
     ros::Time t_rgb;

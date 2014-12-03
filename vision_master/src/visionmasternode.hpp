@@ -4,12 +4,12 @@
 #include <ros/ros.h>
 
 //messages
-#include <color_detection/colors_detected.h>
-#include <color_detection/color_status.h>
+#include <vision_msgs/colors_detected.h>
+#include <vision_msgs/color_status.h>
 
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
-#include <vision_master/object_found.h>
+#include <vision_msgs/object_found.h>
 
 //#include <visionutil/geometry.hpp>
 #include <rosutil/rosutil.hpp>
@@ -65,10 +65,10 @@ private:
     ros::Time t_color;
     ros::Time t_depth;
     bool cube_found;
-    std::vector<color_detection::color_status> colors_found;
+    std::vector<vision_msgs::color_status> colors_found;
 
     //ros stuff
-    void colorCallback(const color_detection::colors_detected::ConstPtr &msg);
+    void colorCallback(const vision_msgs::colors_detected::ConstPtr &msg);
     void depthCallback(const std_msgs::Bool::ConstPtr &msg);
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
     

@@ -6,8 +6,8 @@
 #include <sensor_msgs/image_encodings.h>
 
 //own message
-#include <color_detection/colors_detected.h>
-#include <color_detection/color_status.h>
+#include <vision_msgs/colors_detected.h>
+#include <vision_msgs/color_status.h>
 
 //std
 #include <vector>
@@ -130,7 +130,7 @@ private:
     const static std::string colors[];
 
     //messages
-    color_detection::color_status getNewColorStatus();
+    vision_msgs::color_status getNewColorStatus();
     float getDepth(int row, int col);
 
  //= {"blue","green","red","yellow","orange","purple"}

@@ -234,7 +234,7 @@ void ColorDetectionNode::update() {
 
 
     //create msg
-    color_detection::colors_detected msg;
+    vision_msgs::colors_detected msg;
     msg.blue = getNewColorStatus();
     msg.green = getNewColorStatus();
     msg.red = getNewColorStatus();
@@ -343,8 +343,8 @@ float ColorDetectionNode::getDepth(int row, int col) {
 /**
 Returns a freshly initialized  color_status message object.
 */
-color_detection::color_status ColorDetectionNode::getNewColorStatus() {
-    color_detection::color_status status;
+vision_msgs::color_status ColorDetectionNode::getNewColorStatus() {
+    vision_msgs::color_status status;
     status.found = false;
     status.col = -1;
     status.row = -1;
@@ -444,7 +444,7 @@ ros::NodeHandle ColorDetectionNode::nodeSetup(int argc, char *argv[]) {
     t_rgb = ros::Time::now();
     rgb_subscriber = handle.subscribe("/camera/rgb/image_rect_color", 1, &ColorDetectionNode::rgbCallback, this);
     depth_subscriber = handle.subscribe("/camera/depth/image_rect", 1, &ColorDetectionNode::depthCallback, this);
-    classifier_publisher = handle.advertise<color_detection::colors_detected>("/vision/color_classifier", 1);
+    classifier_publisher = handle.advertise<vision_msgs::colors_detected>("/vision/color_classifier", 10);
     return handle;
 }
 

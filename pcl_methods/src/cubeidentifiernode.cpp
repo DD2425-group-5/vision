@@ -10,6 +10,11 @@ void CubeIdentifierNode::pcCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr
     p_pc = msg;
 }
 
+void CubeIdentifierNode::colorCallback(const vision_msgs::colors_detected::ConstPtr& msg) {
+    t_color = ros::Time::now();
+    c_colors = msg;
+}
+
 void CubeIdentifierNode::readParams(ros::NodeHandle& n) {
 
     ROSUtil::getParam(n, "cube_identifier_params/theta", theta);
@@ -33,6 +38,20 @@ of size (voxel_grid_x, voxel_grid_y, voxel_grid_z), which should have been read 
 parameters.
 */
 void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output) {
+    //pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZRGB> > sor;
+    pcl::VoxelGrid<pcl::PointXYZRGB > sor;
+    sor.setInputCloud (input);
+    sor.setLeafSize (voxel_grid_x, voxel_grid_y, voxel_grid_z);
+    sor.filter (*output);
+}
+
+/**
+Downsamples the pointcloud given and puts it into the output cloud. Uses a voxel grid
+of size (voxel_grid_x, voxel_grid_y, voxel_grid_z), which should have been read as
+parameters.
+*/
+void CubeIdentifierNode::getAreaAroundColor(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output) {
     //pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZRGB> > sor;
     pcl::VoxelGrid<pcl::PointXYZRGB > sor;
@@ -115,6 +134,25 @@ void CubeIdentifierNode::update() {
         cube_publisher.publish(msg);
         return;
     }
+    if((ros::Time::now()-t_color).toSec()>0.5) {
+        cube_publisher.publish(msg);
+        return;
+    }
+
+    std::vector<std::pair<int,int> > pois; //Point Of InterestS
+    if(c_colors->blue.found)
+        pois.push_back(std::pair<int,int>(c_colors->blue.row,c_colors->blue.col));
+    if(c_colors->green.found)
+        pois.push_back(std::pair<int,int>(c_colors->green.row,c_colors->green.col));
+    if(c_colors->red.found)
+        pois.push_back(std::pair<int,int>(c_colors->red.row,c_colors->red.col));
+    if(c_colors->yellow.found)
+        pois.push_back(std::pair<int,int>(c_colors->yellow.row,c_colors->yellow.col));
+    if(c_colors->orange.found)
+        pois.push_back(std::pair<int,int>(c_colors->orange.row,c_colors->orange.col));
+    //if(c_colors->purple.found)
+    //    pois.push_back(std::pair<int,int>(c_colors->purple.row,c_colors->purple.col));
+
 
     //plane normal is the plane's coefficients.
     pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
@@ -130,7 +168,6 @@ void CubeIdentifierNode::update() {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
     downSample(c3po,down_sampled);
-
 
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
@@ -195,6 +232,8 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
                                          &CubeIdentifierNode::pcCallback, this);
     coeffs_subscriber = handle.subscribe("/plane_extraction/plane_coefficients", 1,
                                          &CubeIdentifierNode::coeffsCallback, this);
+    color_subscriber = handle.subscribe("/vision/color_classifier", 10,
+                                         &CubeIdentifierNode::colorCallback, this);
     cube_publisher = handle.advertise<std_msgs::Bool>("/vision/cube_identifier",5);
 
     return handle;

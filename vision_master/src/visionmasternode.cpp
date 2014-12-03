@@ -1,6 +1,6 @@
 #include "visionmasternode.hpp"
 
-void VisionMasterNode::colorCallback(const color_detection::colors_detected::ConstPtr &msg) {
+void VisionMasterNode::colorCallback(const vision_msgs::colors_detected::ConstPtr &msg) {
     t_color = ros::Time::now();
     colors_found[0] = msg->blue;
     colors_found[1] = msg->green;
@@ -163,7 +163,7 @@ void VisionMasterNode::update() {
                 
             }
 
-            vision_master::object_found msg;
+            vision_msgs::object_found msg;
             msg.id = object_names[i];
 
             //its position
@@ -291,7 +291,7 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
 
     cube_found = false;
     //colors_found = std::vector<bool>(6,false);
-    colors_found = std::vector<color_detection::color_status>(6);
+    colors_found = std::vector<vision_msgs::color_status>(6);
     objects_found = std::vector<bool>(10,false);
     occurances_in_a_row = std::vector<int>(10,0);
 
@@ -343,8 +343,8 @@ ros::NodeHandle VisionMasterNode::nodeSetup(int argc, char *argv[]) {
     t_depth = ros::Time::now();
     color_subscriber = handle.subscribe("/vision/color_classifier", 1, &VisionMasterNode::colorCallback, this);
     depth_subscriber = handle.subscribe("/vision/cube_identifier", 1, &VisionMasterNode::depthCallback, this);
-    master_publisher = handle.advertise<vision_master::object_found>("/vision/detection", 100);
-    hint_publisher = handle.advertise<vision_master::object_found>("/vision/detection_hint", 100);
+    master_publisher = handle.advertise<vision_msgs::object_found>("/vision/detection", 100);
+    hint_publisher = handle.advertise<vision_msgs::object_found>("/vision/detection_hint", 100);
     return handle;
 }
 

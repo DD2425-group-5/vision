@@ -1,6 +1,6 @@
 #include "evidencenode.hpp"
 
-void EvidenceNode::objectCallback(const vision_master::object_found::ConstPtr &msg) {
+void EvidenceNode::objectCallback(const vision_msgs::object_found::ConstPtr &msg) {
     speak(msg->id);
     
     //send message to /evidence
