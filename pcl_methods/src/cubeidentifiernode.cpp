@@ -212,10 +212,10 @@ void CubeIdentifierNode::update() {
 
             int minrow = std::max(-size_around_color+msg.data[i].color.row,0);
             int maxrow = std::min(size_around_color+msg.data[i].color.row,
-                                  (int)p_plane->plane_removed_org.width-1);
+                                  (int)p_plane->plane_removed_org.height-1);
             int mincol = std::max(-size_around_color+msg.data[i].color.col,0);
             int maxcol = std::min(size_around_color+msg.data[i].color.col,
-                                  (int)p_plane->plane_removed_org.height-1);
+                                  (int)p_plane->plane_removed_org.width-1);
             cropToArea(cloud_org,down_sampled,minrow,maxrow,mincol,maxcol);
 
             pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
