@@ -252,7 +252,7 @@ void CubeIdentifierNode::update() {
 
             int numClose = 0;
 
-            for(int j = 0; i < cloud_normals->size(); ++j) {
+            for(int j = 0; j < cloud_normals->size(); ++j) {
                 if(closeEnough(normal,(*cloud_normals)[j],min_thresh)) {
                     ++numClose;
                 }
