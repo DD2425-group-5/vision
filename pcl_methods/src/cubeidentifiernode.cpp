@@ -176,6 +176,17 @@ void CubeIdentifierNode::update() {
         if(c_colors->purple.found)
             pois[5] = std::pair<int,int>(c_colors->purple.row,c_colors->purple.col);
     */
+    //plane normal is the plane's coefficients.
+    pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
+
+    //make sure the normal points up.
+    if(normal.normal_y < 0) {
+        normal.normal_x = -normal.normal_x;
+        normal.normal_y = -normal.normal_y;
+        normal.normal_z = -normal.normal_z;
+    }
+
+    if(p_pc->size() > 1000)
     for(int i = 0; i < 6; ++i) {
         if(msg.data[i].color.found) {
             if(!check_patric_cube && i == 4)
@@ -183,15 +194,7 @@ void CubeIdentifierNode::update() {
             if(!check_purple_cube && i == 5)
                 continue;
 
-            //plane normal is the plane's coefficients.
-            pcl::Normal normal(p_coeff->values[0],p_coeff->values[1], p_coeff->values[2]);
 
-            //make sure the normal points up.
-            if(normal.normal_y < 0) {
-                normal.normal_x = -normal.normal_x;
-                normal.normal_y = -normal.normal_y;
-                normal.normal_z = -normal.normal_z;
-            }
 
             //downsample
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
