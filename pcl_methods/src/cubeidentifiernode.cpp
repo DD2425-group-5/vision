@@ -54,7 +54,7 @@ void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&
 Crops input, puts all points from the input pointcloud in the rectangle defined by
 minRow,maxRow,minCol,maxCol into the output pointcloud.
 */
-void CubeIdentifierNode::cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
+void CubeIdentifierNode::cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& input,
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,
                                     int minCol, int maxCol) {
 
@@ -195,13 +195,13 @@ void CubeIdentifierNode::update() {
 
             //downsample
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
-            pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
+            //pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
 
             int minrow = std::max(-size_around_color+msg.data[i].color.row,0);
-            int maxrow = std::min(size_around_color+msg.data[i].color.row,(int)c3po->width-1);
+            int maxrow = std::min(size_around_color+msg.data[i].color.row,(int)p_pc->width-1);
             int mincol = std::max(-size_around_color+msg.data[i].color.col,0);
-            int maxcol = std::min(size_around_color+msg.data[i].color.col,(int)c3po->height-1);
-            cropToArea(c3po,down_sampled,minrow,maxrow,mincol,maxcol);
+            int maxcol = std::min(size_around_color+msg.data[i].color.col,(int)p_pc->height-1);
+            cropToArea(p_pc,down_sampled,minrow,maxrow,mincol,maxcol);
 
             pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
@@ -243,7 +243,7 @@ void CubeIdentifierNode::update() {
                 }
             }
 
-            ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
+            //ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
 
             if(numClose >= num_similar_vectors_thresh) {
                 msg.data[i].cube = true;
