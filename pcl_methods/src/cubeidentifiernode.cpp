@@ -285,6 +285,7 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     close_enough_thresh = std::cos((theta*M_PI) / 180);
 
     //{"blue","green","red","yellow","orange","purple"};
+    color_names = std::vector<std::string>(6);
     color_names[0] = "blue";
     color_names[1] = "green";
     color_names[2] = "red";
