@@ -201,10 +201,10 @@ void CubeIdentifierNode::update() {
 
     for(int i = 0; i < 6; ++i) {
         if(msg.data[i].color.found) {
-            if(!check_patric_cube && i == 4)
+            /*if(!check_patric_cube && i == 4)
                 continue;
             if(!check_purple_cube && i == 5)
-                continue;
+                continue;*/
 
             //downsample
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
@@ -258,7 +258,10 @@ void CubeIdentifierNode::update() {
                 }
             }
 
-            ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
+            //ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
+            ROS_INFO_STREAM("Color " << color_names[i] << " found, numClose: " << numClose << " cloudsize: "
+                            << down_sampled->size());
+
 
             if(numClose >= num_similar_vectors_thresh) {
                 msg.data[i].cube = true;
@@ -267,6 +270,8 @@ void CubeIdentifierNode::update() {
             }
         }
     }
+
+
 
     cube_publisher.publish(msg);
 }
@@ -278,6 +283,14 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     readParams(handle);
 
     close_enough_thresh = std::cos((theta*M_PI) / 180);
+
+    //{"blue","green","red","yellow","orange","purple"};
+    color_names[0] = "blue";
+    color_names[1] = "green";
+    color_names[2] = "red";
+    color_names[3] = "yellow";
+    color_names[4] = "orange";
+    color_names[5] = "purple";
 
     /*pc_subscriber = handle.subscribe("/plane_extraction/plane_removed", 1,
                                          &CubeIdentifierNode::pcCallback, this);

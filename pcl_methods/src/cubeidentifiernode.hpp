@@ -83,6 +83,9 @@ private:
     //for optimizations
     float close_enough_thresh;
 
+    //for debugging
+    std::vector<std::string> color_names;
+
 };
 
 #endif // CUBEIDENTIFIERNODE_HPP
