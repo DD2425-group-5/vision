@@ -59,7 +59,7 @@ private:
 
     //main algorithms
     //see if a normal is close enough to plane:
-    void downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &input,
+    void downSample(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &input,
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output);
     void cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &input,
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,

@@ -46,7 +46,7 @@ Downsamples the pointcloud given and puts it into the output cloud. Uses a voxel
 of size (voxel_grid_x, voxel_grid_y, voxel_grid_z), which should have been read as
 parameters.
 */
-void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& input,
+void CubeIdentifierNode::downSample(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& input,
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output) {
     //pcl::VoxelGrid<pcl::PointCloud<pcl::PointXYZRGB> > sor;
     pcl::VoxelGrid<pcl::PointXYZRGB > sor;
@@ -62,13 +62,16 @@ minRow,maxRow,minCol,maxCol into the output pointcloud.
 void CubeIdentifierNode::cropToArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& input,
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,
                                     int minCol, int maxCol) {
-
+    int floorcount = 0;
     for(int row = minRow; row <= maxRow; ++row) {
         for(int col = minCol; col <= maxCol; ++col) {
-            if(input->at(col,row).z >= 0 )
+            if(input->at(col,row).z > -99 )
                 output->push_back(input->at(col,row));
+		    else
+			    floorcount+=1;
         }
     }
+	//ROS_INFO_STREAM("Floors in rectangle: " << floorcount);
 }
 
 /**
@@ -116,10 +119,13 @@ bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::No
     ux = reference.normal_x;
     uy = reference.normal_y;
     uz = reference.normal_z;
-
+	
     float top = ux*vx+uy*vy+uz*vz;
     float bot = std::sqrt(vx*vx+vy*vy+vz*vz);
-    return ((top/bot) >= min_thresh);
+    bool similar = ((top/bot) >= min_thresh);
+	//	ROS_INFO_STREAM("point normal: x: " << vx << " y: " << vy << " z: " << vz << " similar: " << similar);
+
+	return similar;
 
 
 /*
@@ -186,7 +192,8 @@ void CubeIdentifierNode::update() {
     //ROS_INFO("CHECK 1");
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
     //ROS_INFO("CHECK 2");
-    pcl::fromROSMsg(p_plane->plane_removed_org,*cloud_org);
+    //pcl::fromROSMsg(p_plane->plane_removed_org,*cloud_org);
+	pcl::fromROSMsg(p_plane->plane_removed_org,*cloud_org);
     //ROS_INFO("CHECK 3");
     pcl::Normal normal(p_plane->plane_eq.values[0],p_plane->plane_eq.values[1], p_plane->plane_eq.values[2]);
     //ROS_INFO("CHECK 4");
@@ -198,6 +205,16 @@ void CubeIdentifierNode::update() {
         normal.normal_y = -normal.normal_y;
         normal.normal_z = -normal.normal_z;
     }
+	
+	if(normal.normal_y < 0.6) {
+		ROS_INFO("Plane is wall, discontinuing");
+		msg.ignore_cube = true;
+		cube_publisher.publish(msg);
+        return;
+	}
+	
+	//ROS_INFO_STREAM("Plane Normal: x: " << normal.normal_x << " y: " << normal.normal_y <<
+    //                " z: " << normal.normal_z);	
 
     for(int i = 0; i < 6; ++i) {
         if(msg.data[i].color.found) {
@@ -207,6 +224,7 @@ void CubeIdentifierNode::update() {
                 continue;*/
 
             //downsample
+			pcl::PointCloud<pcl::PointXYZRGB>::Ptr cropped(new pcl::PointCloud<pcl::PointXYZRGB> ());
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr down_sampled(new pcl::PointCloud<pcl::PointXYZRGB> ());
             //pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr c3po = p_pc;
 
@@ -216,7 +234,10 @@ void CubeIdentifierNode::update() {
             int mincol = std::max(-size_around_color+msg.data[i].color.col,0);
             int maxcol = std::min(size_around_color+msg.data[i].color.col,
                                   (int)p_plane->plane_removed_org.width-1);
+			//ROS_INFO_STREAM("minrow: " << minrow << " maxrow: " << maxrow << " mincol: " << mincol <<
+			//                " maxcol: " << maxcol);
             cropToArea(cloud_org,down_sampled,minrow,maxrow,mincol,maxcol);
+			//downSample(cropped,down_sampled);
 
             pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 

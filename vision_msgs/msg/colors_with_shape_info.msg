@@ -8,3 +8,4 @@
 #and darmed basta
 
 color_and_cube[6] data
+bool ignore_cube
