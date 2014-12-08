@@ -1,7 +1,7 @@
 cube_identifier_params : { 
 theta: 1, 
 search_radius: 0.01, 
-num_vectors: 100,
+num_vectors: 30,
 voxel_grid_x: 0.008,
 voxel_grid_y: 0.008,
 voxel_grid_z: 0.008,
