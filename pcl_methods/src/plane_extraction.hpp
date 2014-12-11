@@ -16,10 +16,10 @@
 #include <string>
 
 void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg);
-void extractDominantPlane(
+bool extractDominantPlane(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org,
-    pcl::ModelCoefficients::Ptr coefficients, float tolerance);
+    pcl::ModelCoefficients::Ptr coefficients, float tolerance, int maxInliers);
 
 pcl::PointCloud<pcl::PointXYZRGB> getPointsInBounds(
     PCLUtil::CloudBounds<pcl::PointXYZRGB> bounds,

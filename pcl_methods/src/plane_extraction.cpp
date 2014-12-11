@@ -1,7 +1,7 @@
 #include "plane_extraction.hpp"
 
 ros::Publisher pub;
-//ros::Publisher plane;
+ros::Publisher plane;
 //ros::Publisher exobj;
 //ros::Publisher bbox;
 //ros::Publisher noplane_organized;
@@ -21,10 +21,33 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     // extract the plane from msg - plane points are removed from msg, present in domPlane
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org(new pcl::PointCloud<pcl::PointXYZRGB>());
 
+    int initSize = msg->size();
+    int newSize = msg->size();
+    *cloud_org = *msg;
+    bool done = false;
 
-    extractDominantPlane(msg, cloud_org, coefficients, 0.02);
-    
-    pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
+    bool floorFound = false;
+    pcl::ModelCoefficients::Ptr floor(new pcl::ModelCoefficients);
+    int iters = 0;
+    while(!done) {
+        int prevSize = msg->size();
+        bool ok = extractDominantPlane(msg, cloud_org, coefficients, 0.005, 5000);
+        if(ok) {
+            ++iters;
+            if(coefficients->values[1] > 0.7 || coefficients->values[1] < -0.7) {
+                *floor = *coefficients;
+                floorFound = true;
+            }
+            newSize = msg->size();
+
+        } else {
+            done = true;
+        }
+
+    }
+    ROS_INFO_STREAM("Removed " << initSize-newSize << " points over " << iters << " iterations.");
+
+    //pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
     
     //noplane.publish(msg);
     //plane.publish(domPlane);
@@ -35,13 +58,25 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
     sensor_msgs::PointCloud2 ros_nonorg;
     sensor_msgs::PointCloud2 ros_org;
     pcl_msgs::ModelCoefficients ros_coefficients;
-    pcl_conversions::fromPCL(*coefficients, ros_coefficients);
+    if(floorFound) {
+        pcl_conversions::fromPCL(*floor, ros_coefficients);
+    } else {
+        //ros_coefficients.values
+        for(int i = 0; i < 4; ++i) {
+            ros_coefficients.values.push_back(0);
+        }
+        //ros_coefficients.values[0] = 0;
+        //ros_coefficients.values[1] = 0;
+        //ros_coefficients.values[2] = 0;
+    }
+    //pcl_conversions::fromPCL(*coefficients, ros_coefficients);
     pcl::toROSMsg(*msg,ros_nonorg);
     pcl::toROSMsg(*cloud_org,ros_org);
+
+    plane.publish(msg);
     //pcl::toROSMsg()
     //pcl_conversions::fromPCL(*msg, ros_nonorg);
     //pcl_conversions::fromPCL(*cloud_org, ros_org);
-
     out_msg.plane_eq = ros_coefficients;
     out_msg.plane_removed = ros_nonorg;
     out_msg.plane_removed_org = ros_org;
@@ -73,15 +108,16 @@ void pcl_callback(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& msg){
  * cloud will contain the plane, and the cloud passed in will have the plane
  * removed.
  */
-void extractDominantPlane(
+bool extractDominantPlane(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_org,
     pcl::ModelCoefficients::Ptr coefficients,
-    float tolerance) {
+    float tolerance, int maxInliers) {
     // Stores the coefficients of the plane, defined as
     // ax + by + cz + d = 0
+    pcl::ModelCoefficients::Ptr tmp(new pcl::ModelCoefficients);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr notplane(new pcl::PointCloud<pcl::PointXYZRGB>());
-    *cloud_org = *cloud;
+    //*cloud_org = *cloud;
     //pcl::PointCloud<pcl::PointXYZRGB>::Ptr notplane_org(new pcl::PointCloud<pcl::PointXYZRGB>());
     //pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>());
     // The points which lie on the plane will be put in here
@@ -100,8 +136,15 @@ void extractDominantPlane(
     seg.setDistanceThreshold(tolerance);
 
     seg.setInputCloud(cloud);
-    seg.segment(*inliers, *coefficients);
+    seg.segment(*inliers, *tmp);
+    //ROS_INFO_STREAM("REMOVED " << inliers->indices.size() << " points.");
+    //ROS_INFO_STREAM("Plane Coeffs: " << tmp->values[0] << "," << tmp->values[1] << ","
+    //                << tmp->values[2]);
 
+    if(inliers->indices.size() < maxInliers) {
+        return false;
+    }
+    *coefficients = *tmp;
     pcl::ExtractIndices<pcl::PointXYZRGB> extract;
 
     extract.setInputCloud(cloud);
@@ -111,16 +154,17 @@ void extractDominantPlane(
 
     //extract.setNegative(false); // return points which ARE the indices
     //extract.filter(*plane);
-
-    *cloud = *notplane;
-    //ROS_INFO_STREAM("CLOUD_HEIGHT: " << cloud->height);
-    //ROS_INFO_STREAM("CLOUD_ORG_HEIGHT: " << cloud_org->height);
-
     for(int i = 0; i < inliers->indices.size(); ++i) {
         int col = i%cloud_org->width;
         int row = (i-col)/(cloud_org->width);
         cloud_org->at(col,row).z = -100;
     }
+    *cloud = *notplane;
+    return true;
+    //ROS_INFO_STREAM("CLOUD_HEIGHT: " << cloud->height);
+    //ROS_INFO_STREAM("CLOUD_ORG_HEIGHT: " << cloud_org->height);
+
+
     //pcl::PointXYZRGB ppp;
 
 
@@ -193,7 +237,7 @@ int main (int argc, char* argv[]) {
     // publish a ROS type - can automatically convert from the PCL type
     //noplane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed", 10);
     //noplane_organized = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/plane_removed_org", 10);
-    //plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
+    plane = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/extracted_plane", 10);
     //exobj = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/objects_plane", 10);
     //bbox = handle.advertise<sensor_msgs::PointCloud2>("/plane_extraction/bbox", 10);
     //coeffs = handle.advertise<pcl_msgs::ModelCoefficients>("/plane_extraction/plane_coefficients",10);

@@ -101,10 +101,14 @@ cos(thresh_deg)*|v| < (v*u)/ |u|
 the left side can be completely precomputed, but the right will haveto be done
 for every pixel. min_thresh (the input) is the left side of this equation.
 */
-bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other,
-                                     float min_thresh) {
+void CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::Normal &other,
+                                     float min_thresh, bool& close, bool& perp) {
     //using other variables because their name is shorter.
     float ux,uy,uz,vx,vy,vz;
+    //ROS_INFO_STREAM("vector normal: x: " << other.normal_x << "y: " <<
+    //                other.normal_y << " z: " << other.normal_z);
+
+
 
     //note: make sure the vector points up, similar to the plane normal.
     if(other.normal_y < 0) {
@@ -119,13 +123,22 @@ bool CubeIdentifierNode::closeEnough(const pcl::Normal &reference, const pcl::No
     ux = reference.normal_x;
     uy = reference.normal_y;
     uz = reference.normal_z;
-	
+
+    //return vy > 0.75;
+
     float top = ux*vx+uy*vy+uz*vz;
-    float bot = std::sqrt(vx*vx+vy*vy+vz*vz);
-    bool similar = ((top/bot) >= min_thresh);
+    //float bot = std::sqrt(vx*vx+vy*vy+vz*vz);
+    float tmp = std::acos(top);
+
+    //bool similar = (std::acos(top) <= min_thresh);// && top <= -min_thresh;
+    close = (top >= min_thresh);
+    perp = tmp > -0.06 && tmp < 0.06;
 	//	ROS_INFO_STREAM("point normal: x: " << vx << " y: " << vy << " z: " << vz << " similar: " << similar);
 
-	return similar;
+    //if(similar)
+    //    ROS_INFO_STREAM("top: " << top);
+
+    //return similar;
 
 
 /*
@@ -197,7 +210,7 @@ void CubeIdentifierNode::update() {
     //ROS_INFO("CHECK 3");
     pcl::Normal normal(p_plane->plane_eq.values[0],p_plane->plane_eq.values[1], p_plane->plane_eq.values[2]);
     //ROS_INFO("CHECK 4");
-
+    //pcl::Normal normal(0.0551455, 0.845467, 0.531173);
 
     //make sure the normal points up.
     if(normal.normal_y < 0) {
@@ -206,16 +219,17 @@ void CubeIdentifierNode::update() {
         normal.normal_z = -normal.normal_z;
     }
 	
-	if(normal.normal_y < 0.6) {
+    if(normal.normal_y < 0.6) {
 		ROS_INFO("Plane is wall, discontinuing");
 		msg.ignore_cube = true;
 		cube_publisher.publish(msg);
         return;
-	}
+    }
 	
-	//ROS_INFO_STREAM("Plane Normal: x: " << normal.normal_x << " y: " << normal.normal_y <<
-    //                " z: " << normal.normal_z);	
+    //ROS_INFO_STREAM("Plane Normal: x: " << normal.normal_x << " y: " << normal.normal_y <<
+    //                " z: " << normal.normal_z);
 
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr closepc(new pcl::PointCloud<pcl::PointXYZRGB> ());
     for(int i = 0; i < 6; ++i) {
         if(msg.data[i].color.found) {
             /*if(!check_patric_cube && i == 4)
@@ -236,8 +250,12 @@ void CubeIdentifierNode::update() {
                                   (int)p_plane->plane_removed_org.width-1);
 			//ROS_INFO_STREAM("minrow: " << minrow << " maxrow: " << maxrow << " mincol: " << mincol <<
 			//                " maxcol: " << maxcol);
-            cropToArea(cloud_org,down_sampled,minrow,maxrow,mincol,maxcol);
-			//downSample(cropped,down_sampled);
+            cropToArea(cloud_org,cropped,minrow,maxrow,mincol,maxcol);
+            downSample(cropped,down_sampled);
+            if(down_sampled->size() == 0) {
+                msg.data[i].cube = false;
+                continue;
+            }
 
             pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
 
@@ -266,22 +284,31 @@ void CubeIdentifierNode::update() {
             //see comments for that function.
             //close enough thresh is the cosine part already computed
             //that is done in nodeSetup.
-            float min_thresh = close_enough_thresh *
+            /*float min_thresh = close_enough_thresh *
                     std::sqrt(std::pow(normal.normal_x,2)+
                               std::pow(normal.normal_y,2)+
                               std::pow(normal.normal_z,2));
-
+*/
+            float min_thresh = close_enough_thresh;
             int numClose = 0;
+            int numPerp = 0;
 
+            bool close, perp;
             for(int j = 0; j < cloud_normals->size(); ++j) {
-                if(closeEnough(normal,(*cloud_normals)[j],min_thresh)) {
+                closeEnough(normal,(*cloud_normals)[j],min_thresh,close,perp);
+                if(close) {
                     ++numClose;
+                    closepc->push_back((*down_sampled)[j]);
+                } else {
+                    ++numPerp;
                 }
             }
+            ROS_INFO_STREAM("Color " << color_names[i] << " numClose: " << numClose << " numPerp: "
+                            << numPerp << " size: " << down_sampled->size());
 
             //ROS_INFO_STREAM("NUM CLOSE "<< i << ": " << numClose << " Cloudsize: " << down_sampled->size());
-            ROS_INFO_STREAM("Color " << color_names[i] << " found, numClose: " << numClose << " cloudsize: "
-                            << down_sampled->size());
+            //ROS_INFO_STREAM("Color " << color_names[i] << " found, numClose: " << numClose << " cloudsize: "
+            //                << down_sampled->size());
 
 
             if(numClose >= num_similar_vectors_thresh) {
@@ -293,7 +320,7 @@ void CubeIdentifierNode::update() {
     }
 
 
-
+    close_publisher.publish(closepc);
     cube_publisher.publish(msg);
 }
 
@@ -302,7 +329,7 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     ros::NodeHandle handle;
 
     readParams(handle);
-
+    //close_enough_thresh = theta*M_PI / 180;
     close_enough_thresh = std::cos((theta*M_PI) / 180);
 
     //{"blue","green","red","yellow","orange","purple"};
@@ -323,6 +350,7 @@ ros::NodeHandle CubeIdentifierNode::nodeSetup(int argc, char* argv[]) {
     color_subscriber = handle.subscribe("/vision/color_classifier", 10,
                                          &CubeIdentifierNode::colorCallback, this);
     cube_publisher = handle.advertise<vision_msgs::colors_with_shape_info>("/vision/cube_identifier",5);
+    close_publisher = handle.advertise<sensor_msgs::PointCloud2>("/vision/close",5);
 
     return handle;
 }

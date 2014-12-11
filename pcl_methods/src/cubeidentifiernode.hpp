@@ -22,6 +22,7 @@
 #include <vision_msgs/color_and_cube.h>
 #include <vision_msgs/colors_with_shape_info.h>
 #include <vision_msgs/plane_extracted.h>
+#include <tf/transform_broadcaster.h>
 
 
 class CubeIdentifierNode {
@@ -34,6 +35,7 @@ public:
     ros::Subscriber plane_subscriber;
     ros::Subscriber color_subscriber;
     ros::Publisher cube_publisher;
+    ros::Publisher close_publisher;
 
 private:
     ros::NodeHandle nodeSetup(int argc, char* argv[]);
@@ -65,7 +67,8 @@ private:
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& output, int minRow, int maxRow,
                                         int minCol, int maxCol);
 
-    bool closeEnough(const pcl::Normal& reference, const pcl::Normal& other, float min_thresh);
+    void closeEnough(const pcl::Normal& reference, const pcl::Normal& other, float min_thresh,
+                     bool &close, bool &perp);
 
 
     //parameters
@@ -82,6 +85,7 @@ private:
 
     //for optimizations
     float close_enough_thresh;
+    float close_90_top;
 
     //for debugging
     std::vector<std::string> color_names;

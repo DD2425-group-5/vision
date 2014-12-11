@@ -30,3 +30,6 @@ add_dependencies(object_clustering ${catkin_EXPORTED_TARGETS})
 add_executable(cubeIdentifier src/cubeidentifiernode.cpp)
 target_link_libraries(cubeIdentifier ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_dependencies(cubeIdentifier ${catkin_EXPORTED_TARGETS})
+
+add_executable(frame_tf_broadcaster src/tfpublisher.cpp)
+target_link_libraries(frame_tf_broadcaster ${catkin_LIBRARIES})

@@ -194,8 +194,8 @@ void ColorDetectionNode::update() {
             //scaleImage(gauss_img,scaled_img);
             //cv::imshow(colors[i],scaled_img);
 
-        if(i == 5) {
-          //  cv::imshow(colors[i],thresh);
+        //if(i == 5) {
+        //cv::imshow(colors[i],thresh);
             //ROS_INFO_STREAM("Contour size of model index " << i << ": " << biggest_contours[i]);
             //ROS_INFO_STREAM("Contour center: (row: " << contour_centers[i].y << ", col: " << contour_centers[i].x);
             //ROS_INFO_STREAM("Depth there: " << getDepth(contour_centers[i].y, contour_centers[i].x));
@@ -218,7 +218,7 @@ void ColorDetectionNode::update() {
                     //cont_img.at<float>(contours[j][k].y, contours[j][k].y) = 1;
                 }
             }*/
-        }
+        //}
 
 
         //}
@@ -248,7 +248,8 @@ void ColorDetectionNode::update() {
         msg.blue.col = contour_centers[0].x;
         msg.blue.row = contour_centers[0].y;
         msg.blue.depth = getDepth(contour_centers[0].y,contour_centers[0].x);
-        //ROS_INFO_STREAM("BLUE SEEN detph: " << msg.blue.depth);
+        ROS_INFO_STREAM("BLUE SEEN detph: " << msg.blue.depth << " cont size: "
+                        << biggest_contours[0] << " at (" << msg.blue.col << "," << msg.blue.row);
     }
 
     if(biggest_contours[1] >= models[1].min_contour_size) {
@@ -256,7 +257,8 @@ void ColorDetectionNode::update() {
         msg.green.col = contour_centers[1].x;
         msg.green.row = contour_centers[1].y;
         msg.green.depth = getDepth(contour_centers[1].y,contour_centers[1].x);
-        //ROS_INFO_STREAM("GREEN SEEN detph: " << msg.green.depth);
+        ROS_INFO_STREAM("GREEN SEEN detph: " << msg.green.depth << " cont size: "
+                        << biggest_contours[1] << " at (" << msg.green.col << "," << msg.green.row);
     }
 
     if(biggest_contours[2] >= models[2].min_contour_size) {
@@ -264,7 +266,8 @@ void ColorDetectionNode::update() {
         msg.red.col = contour_centers[2].x;
         msg.red.row = contour_centers[2].y;
         msg.red.depth = getDepth(contour_centers[2].y,contour_centers[2].x);
-       // ROS_INFO_STREAM("RED SEEN detph: " << msg.red.depth);
+        ROS_INFO_STREAM("RED SEEN detph: " << msg.red.depth << " cont size: "
+                        << biggest_contours[2] << " at (" << msg.red.col << "," << msg.red.row);
     }
 
     if(biggest_contours[3] >= models[3].min_contour_size) {
@@ -272,7 +275,8 @@ void ColorDetectionNode::update() {
         msg.yellow.col = contour_centers[3].x;
         msg.yellow.row = contour_centers[3].y;
         msg.yellow.depth = getDepth(contour_centers[3].y,contour_centers[3].x);
-        //ROS_INFO_STREAM("YELLOW SEEN detph: " << msg.yellow.depth);
+        ROS_INFO_STREAM("YELLOW SEEN detph: " << msg.yellow.depth << " cont size: "
+                        << biggest_contours[3] << " at (" << msg.yellow.col << "," << msg.yellow.row);
     }
 
     if(biggest_contours[4] >= models[4].min_contour_size) {
@@ -280,7 +284,8 @@ void ColorDetectionNode::update() {
         msg.orange.col = contour_centers[4].x;
         msg.orange.row = contour_centers[4].y;
         msg.orange.depth = getDepth(contour_centers[4].y,contour_centers[4].x);
-        //ROS_INFO_STREAM("ORANGE SEEN detph: " << msg.orange.depth);
+        ROS_INFO_STREAM("ORANGE SEEN detph: " << msg.orange.depth << " cont size: "
+                        << biggest_contours[4] << " at (" << msg.orange.col << "," << msg.orange.row);
     }
 
     if(biggest_contours[5] >= models[5].min_contour_size) {
@@ -288,7 +293,8 @@ void ColorDetectionNode::update() {
         msg.purple.col = contour_centers[5].x;
         msg.purple.row = contour_centers[5].y;
         msg.purple.depth = getDepth(contour_centers[5].y,contour_centers[5].x);
-        //ROS_INFO_STREAM("PURPLE SEEN detph: " << msg.purple.depth);
+        ROS_INFO_STREAM("PURPLE SEEN detph: " << msg.purple.depth << " cont size: "
+                        << biggest_contours[5] << " at (" << msg.purple.col << "," << msg.purple.row);
     }
 
 
